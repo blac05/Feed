@@ -1,0 +1,128 @@
+{
+  "users": [
+    {
+      "id": "u_health",
+      "name": "Global Health Desk",
+      "handle": "globalhealth",
+      "email": "global@example.com",
+      "phone": "+234000000001",
+      "dateOfBirth": "1998-01-01",
+      "passwordHash": "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      "avatarInitials": "GH",
+      "wallpaperUrl": "",
+      "bio": "Public health updates and emergency response dashboards.",
+      "verified": true,
+      "followers": 1800000
+    },
+    {
+      "id": "u_club",
+      "name": "City United FC",
+      "handle": "cityunited",
+      "email": "club@example.com",
+      "phone": "+234000000002",
+      "dateOfBirth": "1994-06-12",
+      "passwordHash": "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      "avatarInitials": "CU",
+      "wallpaperUrl": "",
+      "bio": "Official club fixtures, trials, venue notices, and fan updates.",
+      "verified": true,
+      "followers": 942000
+    }
+  ],
+  "sessions": [],
+  "verifications": [],
+  "follows": [],
+  "posts": [
+    {
+      "id": "p1",
+      "authorId": "u_health",
+      "area": "International Affairs",
+      "body": "The West Africa public health briefing has added a weekly dashboard for surveillance, clinic capacity, and emergency supply movement.",
+      "imageUrl": "https://images.unsplash.com/photo-1581090464777-f3220bbe1b8b?auto=format&fit=crop&w=1200&q=80",
+      "stats": [
+        { "value": "14", "label": "countries reporting" },
+        { "value": "92%", "label": "facility response rate" },
+        { "value": "6h", "label": "average update cycle" }
+      ],
+      "likes": 1280,
+      "reposts": 402,
+      "shares": 97,
+      "commentsRestricted": false,
+      "comments": [],
+      "createdAt": "2026-05-26T00:00:00.000Z"
+    },
+    {
+      "id": "p2",
+      "authorId": "u_club",
+      "area": "Sports",
+      "body": "Academy trials open next month. Registered players will receive assessment times, venue rules, and kit requirements through the event page.",
+      "imageUrl": "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80",
+      "stats": [
+        { "value": "4", "label": "trial centers" },
+        { "value": "U15-U21", "label": "eligible groups" },
+        { "value": "May 31", "label": "registration closes" }
+      ],
+      "likes": 3520,
+      "reposts": 870,
+      "shares": 188,
+      "commentsRestricted": true,
+      "comments": [],
+      "createdAt": "2026-05-26T00:00:00.000Z"
+    }
+  ],
+  "pages": [
+    {
+      "id": "pg_policy",
+      "name": "World Policy Room",
+      "handle": "policyroom",
+      "type": "Government source",
+      "description": "Briefings, policy notices, public consultations, and agency structure updates.",
+      "avatarInitials": "WP",
+      "verified": true,
+      "followers": 1800000
+    },
+    {
+      "id": "pg_games",
+      "name": "Continental Games",
+      "handle": "continentalgames",
+      "type": "Sports committee",
+      "description": "Fixtures, ticketing, team lists, venue notices, and media accreditation.",
+      "avatarInitials": "CG",
+      "verified": true,
+      "followers": 942000
+    }
+  ],
+  "events": [
+    {
+      "id": "e_games",
+      "dateLabel": "28 May",
+      "title": "Continental Games opening ceremony",
+      "organizer": "Continental Games",
+      "area": "Sports",
+      "description": "Live program updates, transport guidance, and ticket resales from verified holders.",
+      "ticketStatus": "Tickets available",
+      "ticketInterest": 0,
+      "updateSubscribers": 0
+    },
+    {
+      "id": "e_economy",
+      "dateLabel": "02 Jun",
+      "title": "Economic outlook forum",
+      "organizer": "Market Signals",
+      "area": "Economics",
+      "description": "Central bank panel, market data release, and moderated viewer questions.",
+      "ticketStatus": "Free registration",
+      "ticketInterest": 0,
+      "updateSubscribers": 0
+    }
+  ],
+  "notifications": [
+    {
+      "id": "n1",
+      "userId": null,
+      "message": "Global Health Desk posted a new public update.",
+      "read": false,
+      "createdAt": "2026-05-26T00:00:00.000Z"
+    }
+  ]
+}
