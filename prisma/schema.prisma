@@ -1,6 +1,6 @@
 datasource db {
   provider = "mongodb"
-  url      = env("mongodb+srv://Gibson:<db_password>@cluster0.udpjlbu.mongodb.net/?appName=Cluster0gggg--")
+  url      = env("DATABASE_URL")
 }
 
 generator client {
