@@ -3,9 +3,9 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 
 // Import Routing Nodes
-import authRoutes from './src/src/routes/auth.js';
-import postRoutes from './src/src/routes/posts.js';
-import eventRoutes from './src/src/routes/events.js';
+import authRoutes from './routes/auth.js';
+import postRoutes from './routes/posts.js';
+import eventRoutes from './routes/events.js';
 
 dotenv.config();
 
