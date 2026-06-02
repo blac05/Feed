@@ -32,6 +32,33 @@ const userSchema = new mongoose.Schema(
   {
     timestamps: true,
   }
-);
+
+  bio: {
+  type: String,
+  default: "",
+
+
+location: {
+  type: String,
+  default: "",
+},
+
+website: {
+  type: String,
+  default: "",
+},
+
+coverImage: {
+  type: String,
+  default: "",
+},
+
+bookmarks: [
+  {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Post",
+  },
+],
+  });
 
 export default mongoose.model("User", userSchema);
