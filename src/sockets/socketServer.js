@@ -2,6 +2,10 @@ import { Server } from "socket.io";
 
 import liveSocket from "./liveSocket.js";
 
+import chatSocket from "./chatSocket.js";
+
+chatSocket(io);
+
 let io;
 
 export const initializeSocket =
