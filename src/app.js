@@ -3,7 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
 import rateLimit from "express-rate-limit";
-
+import liveRoutes from "./routes/liveRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
 import eventRoutes from "./routes/eventRoutes.js";
@@ -22,6 +22,10 @@ app.use(
     windowMs: 15 * 60 * 1000,
     max: 100,
   })
+);
+app.use(
+  "/api/live",
+  liveRoutes
 );
 
 app.use(express.json());
