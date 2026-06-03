@@ -10,6 +10,9 @@ import eventRoutes from "./routes/eventRoutes.js";
 import commentRoutes from "./routes/commentRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
+import withdrawalRoutes from "./routes/withdrawalRoutes.js";
+import walletRoutes from "./routes/walletRoutes.js";
 
 const app = express();
 
@@ -26,6 +29,21 @@ app.use(
 app.use(
   "/api/live",
   liveRoutes
+);
+
+app.use(
+  "/api/payments",
+  paymentRoutes
+);
+
+app.use(
+  "/api/withdrawals",
+  withdrawalRoutes
+);
+
+app.use(
+  "/api/wallet",
+  walletRoutes
 );
 
 app.use(express.json());
