@@ -13,6 +13,8 @@ import userRoutes from "./routes/userRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import withdrawalRoutes from "./routes/withdrawalRoutes.js";
 import walletRoutes from "./routes/walletRoutes.js";
+import storyRoutes from "./routes/storyRoutes.js";
+import exploreRoutes from "./routes/exploreRoutes.js";
 
 const app = express();
 
@@ -26,6 +28,17 @@ app.use(
     max: 100,
   })
 );
+
+app.use(
+  "/api/stories",
+  storyRoutes
+);
+
+app.use(
+  "/api/explore",
+  exploreRoutes
+);
+
 app.use(
   "/api/live",
   liveRoutes
