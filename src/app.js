@@ -15,6 +15,8 @@ import withdrawalRoutes from "./routes/withdrawalRoutes.js";
 import walletRoutes from "./routes/walletRoutes.js";
 import storyRoutes from "./routes/storyRoutes.js";
 import exploreRoutes from "./routes/exploreRoutes.js";
+import storyReactionRoutes from "./routes/storyReactionRoutes.js";
+import storyViewRoutes from "./routes/storyViewRoutes.js";
 
 const app = express();
 
@@ -28,7 +30,15 @@ app.use(
     max: 100,
   })
 );
+app.use(
+  "/api/story-reactions",
+  storyReactionRoutes
+);
 
+app.use(
+  "/api/story-views",
+  storyViewRoutes
+);
 app.use(
   "/api/stories",
   storyRoutes
