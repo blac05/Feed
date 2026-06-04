@@ -17,6 +17,7 @@ import storyRoutes from "./routes/storyRoutes.js";
 import exploreRoutes from "./routes/exploreRoutes.js";
 import storyReactionRoutes from "./routes/storyReactionRoutes.js";
 import storyViewRoutes from "./routes/storyViewRoutes.js";
+import videoRoutes from "./routes/videoRoutes.js";
 
 const app = express();
 
@@ -43,7 +44,10 @@ app.use(
   "/api/stories",
   storyRoutes
 );
-
+app.use(
+  "/api/videos",
+  videoRoutes
+);
 app.use(
   "/api/explore",
   exploreRoutes
