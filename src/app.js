@@ -18,6 +18,8 @@ import exploreRoutes from "./routes/exploreRoutes.js";
 import storyReactionRoutes from "./routes/storyReactionRoutes.js";
 import storyViewRoutes from "./routes/storyViewRoutes.js";
 import videoRoutes from "./routes/videoRoutes.js";
+import videoLikeRoutes from "./routes/videoLikeRoutes.js";
+import videoCommentRoutes from "./routes/videoCommentRoutes.js";
 
 const app = express();
 
@@ -35,7 +37,15 @@ app.use(
   "/api/story-reactions",
   storyReactionRoutes
 );
+app.use(
+  "/api/video-likes",
+  videoLikeRoutes
+);
 
+app.use(
+  "/api/video-comments",
+  videoCommentRoutes
+);
 app.use(
   "/api/story-views",
   storyViewRoutes
