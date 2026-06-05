@@ -24,6 +24,9 @@ import productRoutes from "./routes/productRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import storeRoutes from "./routes/storeRoutes.js";
 import subscriptionRoutes from "./routes/subscriptionRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import reportRoutes from "./routes/reportRoutes.js";
+import verificationRoutes from "./routes/verificationRoutes.js";
 
 const app = express();
 
@@ -106,7 +109,9 @@ app.use("/api/events", eventRoutes);
 app.use("/api/comments", commentRoutes);
 
 app.use("/api/users", userRoutes);
-
+app.use("/api/admin", adminRoutes);
+app.use("/api/reports", reportRoutes);
+app.use("/api/verifications", verificationRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
