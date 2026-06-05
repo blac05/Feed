@@ -20,6 +20,10 @@ import storyViewRoutes from "./routes/storyViewRoutes.js";
 import videoRoutes from "./routes/videoRoutes.js";
 import videoLikeRoutes from "./routes/videoLikeRoutes.js";
 import videoCommentRoutes from "./routes/videoCommentRoutes.js";
+import productRoutes from "./routes/productRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";
+import storeRoutes from "./routes/storeRoutes.js";
+import subscriptionRoutes from "./routes/subscriptionRoutes.js";
 
 const app = express();
 
@@ -104,5 +108,9 @@ app.use("/api/comments", commentRoutes);
 app.use("/api/users", userRoutes);
 
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/orders", orderRoutes);
+app.use("/api/stores", storeRoutes);
+app.use("/api/subscriptions", subscriptionRoutes);
 
 export default app;
