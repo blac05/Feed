@@ -33,6 +33,10 @@ import campaignRoutes from "./routes/campaignRoutes.js";
 import advertisementRoutes from "./routes/advertisementRoutes.js";
 import sponsorshipRoutes from "./routes/sponsorshipRoutes.js";
 import communityRoutes from "./routes/communityRoutes.js";
+import podcastRoutes from "./routes/podcastRoutes.js";
+import audioSpaceRoutes from "./routes/audioSpaceRoutes.js";
+import ticketRoutes from "./routes/ticketRoutes.js";
+import videoCallRoutes from "./routes/videoCallRoutes.js";
 
 const app = express();
 
@@ -117,7 +121,10 @@ app.use("/api/posts", postRoutes);
 app.use("/api/events", eventRoutes);
 
 app.use("/api/comments", commentRoutes);
-
+app.use("/api/podcasts", podcastRoutes);
+app.use("/api/spaces", audioSpaceRoutes);
+app.use("/api/tickets", ticketRoutes);
+app.use("/api/video-calls", videoCallRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/reports", reportRoutes);
