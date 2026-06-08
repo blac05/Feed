@@ -32,6 +32,7 @@ import brandRoutes from "./routes/brandRoutes.js";
 import campaignRoutes from "./routes/campaignRoutes.js";
 import advertisementRoutes from "./routes/advertisementRoutes.js";
 import sponsorshipRoutes from "./routes/sponsorshipRoutes.js";
+import communityRoutes from "./routes/communityRoutes.js";
 
 const app = express();
 
@@ -48,6 +49,10 @@ app.use(
 app.use(
   "/api/story-reactions",
   storyReactionRoutes
+);
+app.use(
+  "/api/communities",
+  communityRoutes
 );
 app.use(
   "/api/video-likes",
