@@ -27,6 +27,11 @@ import subscriptionRoutes from "./routes/subscriptionRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 import verificationRoutes from "./routes/verificationRoutes.js";
+import businessRoutes from "./routes/businessRoutes.js";
+import brandRoutes from "./routes/brandRoutes.js";
+import campaignRoutes from "./routes/campaignRoutes.js";
+import advertisementRoutes from "./routes/advertisementRoutes.js";
+import sponsorshipRoutes from "./routes/sponsorshipRoutes.js";
 
 const app = express();
 
@@ -117,5 +122,10 @@ app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/stores", storeRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);
+app.use("/api/business", businessRoutes);
+app.use("/api/brands", brandRoutes);
+app.use("/api/campaigns", campaignRoutes);
+app.use("/api/advertisements", advertisementRoutes);
+app.use("/api/sponsorships", sponsorshipRoutes);
 
 export default app;
