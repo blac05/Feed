@@ -1,5 +1,5 @@
 import Video from "../models/Video.js";
-import VideoLike from "../models/VideoLike.js";
+import VideoLike from "../models/Videolike.js";
 import VideoComment from "../models/VideoComment.js";
 import VideoView from "../models/VideoView.js";
 
