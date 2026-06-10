@@ -4,8 +4,10 @@ import helmet from "helmet";
 import compression from "compression";
 import rateLimit from "express-rate-limit";
 // ... other imports ...
+import storyReactionRoutes from "./routes/storyReactionRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 // ... other imports ...
+
 
 const app = express();
 
