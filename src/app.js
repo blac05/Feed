@@ -37,6 +37,7 @@ import podcastRoutes from "./routes/podcastRoutes.js";
 import audioSpaceRoutes from "./routes/audioSpaceRoutes.js";
 import ticketRoutes from "./routes/ticketRoutes.js";
 import videoCallRoutes from "./routes/videoCallRoutes.js";
+import reportRoutes from './routes/reportRoutes.js';
 
 const app = express();
 
@@ -139,5 +140,6 @@ app.use("/api/brands", brandRoutes);
 app.use("/api/campaigns", campaignRoutes);
 app.use("/api/advertisements", advertisementRoutes);
 app.use("/api/sponsorships", sponsorshipRoutes);
+app.use('/reports', reportRoutes);
 
 export default app;
