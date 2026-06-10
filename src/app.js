@@ -36,6 +36,7 @@ import campaignRoutes from "./routes/campaignRoutes.js";
 import advertisementRoutes from "./routes/advertisementRoutes.js";
 import sponsorshipRoutes from "./routes/sponsorshipRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
+import podcastRoutes from "./routes/podcastRoutes.js";
 // ... other imports ...
 
 
@@ -115,6 +116,9 @@ app.use("/api/brands", brandRoutes);
 app.use("/api/campaigns", campaignRoutes);
 app.use("/api/advertisements", advertisementRoutes);
 app.use("/api/sponsorships", sponsorshipRoutes);
+app.use("/api/podcasts", podcastRoutes);
+app.use("/api/reports", reportRoutes); // <-- keep this line, remove the duplicate below
+
 
 // Remove the duplicate:
  // app.use('/reports', reportRoutes); // <-- delete this line
