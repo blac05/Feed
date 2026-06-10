@@ -22,7 +22,6 @@ import eventRoutes from "./routes/eventRoutes.js";
 import commentRoutes from "./routes/commentRoutes.js";
 import audioSpaceRoutes from "./routes/audioSpaceRoutes.js";
 import ticketRoutes from "./routes/ticketRoutes.js";
-import videoCallRoutes from "./routes/videoCallRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import verificationRoutes from "./routes/verificationRoutes.js";
