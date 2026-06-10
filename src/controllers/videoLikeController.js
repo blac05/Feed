@@ -1,4 +1,4 @@
-import VideoLike from "../models/VideoLike.js";
+import VideoLike from "../models/Videolike.js";
 import {
   updateLikeCount,
 } from "../services/videoService.js";
