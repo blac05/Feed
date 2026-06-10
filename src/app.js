@@ -20,7 +20,6 @@ import authRoutes from "./routes/authRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
 import eventRoutes from "./routes/eventRoutes.js";
 import commentRoutes from "./routes/commentRoutes.js";
-import podcastRoutes from "./routes/podcastRoutes.js";
 import audioSpaceRoutes from "./routes/audioSpaceRoutes.js";
 import ticketRoutes from "./routes/ticketRoutes.js";
 import videoCallRoutes from "./routes/videoCallRoutes.js";
