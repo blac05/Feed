@@ -44,12 +44,18 @@ const app = express();
 
 // ✅ Middleware first — always
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 app.use(cors({
-  origin: [
-    "https://feed-frontend-eight.vercel.app",
-    "http://localhost:5173"
-  ],
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (
+      origin.endsWith(".vercel.app") ||
+      origin === "http://localhost:5173" ||
+      origin === "http://localhost:3000"
+    ) {
+      return callback(null, true);
+    }
+    return callback(new Error("Not allowed by CORS"));
+  },
   credentials: true,
 }));
 app.use(helmet());
