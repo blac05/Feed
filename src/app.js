@@ -39,6 +39,8 @@ import reportRoutes from "./routes/reportRoutes.js";
 import podcastRoutes from "./routes/podcastRoutes.js";
 import videoCallRoutes from "./routes/videoCallRoutes.js";
 import recommendationRoutes from "./routes/recommendationRoutes.js";
+import uploadRoutes from "./routes/uploadRoutes.js";
+
 
 const app = express();
 
@@ -107,6 +109,8 @@ app.use("/api/live", liveRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/withdrawals", withdrawalRoutes);
 app.use("/api/wallet", walletRoutes);
+app.use("/api/upload", uploadRoutes);
+
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
