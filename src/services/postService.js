@@ -1,4 +1,5 @@
 import Post from "../models/Post.js";
+import { getIO } from "../sockets/socketServer.js";
 
 export const createPostService = async (userId, data) => {
   const post = await Post.create({
@@ -33,24 +34,61 @@ export const deletePostService = async (postId, userId) => {
 };
 
 export const likePostService = async (postId, userId) => {
-  const post = await Post.findById(postId);
+  const post = await Post.findById(postId)
+    .populate("author", "username name avatar isVerified accountType");
   if (!post) throw new Error("Post not found");
+
   const alreadyLiked = post.likes.includes(userId);
   if (alreadyLiked) {
     post.likes.pull(userId);
   } else {
     post.likes.push(userId);
+    // 🔔 Emit notification to post author
+    if (post.author._id.toString() !== userId.toString()) {
+      try {
+        const io = getIO();
+        io.to(post.author._id.toString()).emit("notification", {
+          id: Date.now(),
+          type: "like",
+          user: "Someone",
+          text: "liked your post",
+          time: "Just now",
+          read: false,
+          avatar: null,
+        });
+      } catch (e) {}
+    }
   }
+
   await post.save();
   return await Post.findById(postId)
     .populate("author", "username name avatar isVerified accountType");
 };
 
 export const addCommentService = async (postId, userId, text) => {
-  const post = await Post.findById(postId);
+  const post = await Post.findById(postId)
+    .populate("author", "username name avatar isVerified accountType");
   if (!post) throw new Error("Post not found");
+
   post.comments.push({ user: userId, text });
   await post.save();
+
+  // 🔔 Emit notification to post author
+  if (post.author._id.toString() !== userId.toString()) {
+    try {
+      const io = getIO();
+      io.to(post.author._id.toString()).emit("notification", {
+        id: Date.now(),
+        type: "comment",
+        user: "Someone",
+        text: `commented: "${text.slice(0, 50)}"`,
+        time: "Just now",
+        read: false,
+        avatar: null,
+      });
+    } catch (e) {}
+  }
+
   return await Post.findById(postId)
     .populate("author", "username name avatar isVerified accountType")
     .populate("comments.user", "username name avatar isVerified accountType");
