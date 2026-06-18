@@ -4,102 +4,58 @@ import {
   getPostByIdService,
   deletePostService,
   likePostService,
+  addCommentService,
 } from "../services/postService.js";
 
-export const createPost = async (
-  req,
-  res,
-  next
-) => {
+export const createPost = async (req, res, next) => {
   try {
-    const post = await createPostService(
-      req.user._id,
-      req.body
-    );
-
-    res.status(201).json({
-      success: true,
-      post,
-    });
+    const post = await createPostService(req.user._id, req.body);
+    res.status(201).json({ success: true, post });
   } catch (error) {
     next(error);
   }
 };
 
-export const getPosts = async (
-  req,
-  res,
-  next
-) => {
+export const getPosts = async (req, res, next) => {
   try {
-    const posts =
-      await getAllPostsService();
-
-    res.json({
-      success: true,
-      posts,
-    });
+    const posts = await getAllPostsService();
+    res.json({ success: true, posts });
   } catch (error) {
     next(error);
   }
 };
 
-export const getPost = async (
-  req,
-  res,
-  next
-) => {
+export const getPost = async (req, res, next) => {
   try {
-    const post =
-      await getPostByIdService(
-        req.params.id
-      );
-
-    res.json({
-      success: true,
-      post,
-    });
+    const post = await getPostByIdService(req.params.id);
+    res.json({ success: true, post });
   } catch (error) {
     next(error);
   }
 };
 
-export const deletePost = async (
-  req,
-  res,
-  next
-) => {
+export const deletePost = async (req, res, next) => {
   try {
-    await deletePostService(
-      req.params.id,
-      req.user._id.toString()
-    );
-
-    res.json({
-      success: true,
-      message: "Post deleted",
-    });
+    await deletePostService(req.params.id, req.user._id.toString());
+    res.json({ success: true, message: "Post deleted" });
   } catch (error) {
     next(error);
   }
 };
 
-export const likePost = async (
-  req,
-  res,
-  next
-) => {
+export const likePost = async (req, res, next) => {
   try {
-    const post =
-      await likePostService(
-        req.params.id,
-        req.user._id
-      );
+    const post = await likePostService(req.params.id, req.user._id);
+    res.json({ success: true, post });
+  } catch (error) {
+    next(error);
+  }
+};
 
-    res.json({
-      success: true,
-      post,
-    });
+export const addComment = async (req, res, next) => {
+  try {
+    const post = await addCommentService(req.params.id, req.user._id, req.body.text);
+    res.json({ success: true, post });
   } catch (error) {
     next(error);
   }
