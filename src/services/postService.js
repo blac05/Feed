@@ -1,4 +1,5 @@
 import Post from "../models/Post.js";
+import User from "../models/User.js";
 import { getIO } from "../sockets/socketServer.js";
 
 export const createPostService = async (userId, data) => {
@@ -15,6 +16,15 @@ export const createPostService = async (userId, data) => {
 
 export const getAllPostsService = async () => {
   return await Post.find()
+    .populate("author", "username name avatar isVerified accountType")
+    .sort({ createdAt: -1 })
+    .limit(50);
+};
+
+export const getFollowingPostsService = async (userId) => {
+  const user = await User.findById(userId);
+  if (!user) throw new Error("User not found");
+  return await Post.find({ author: { $in: [...user.following, userId] } })
     .populate("author", "username name avatar isVerified accountType")
     .sort({ createdAt: -1 })
     .limit(50);
@@ -43,7 +53,6 @@ export const likePostService = async (postId, userId) => {
     post.likes.pull(userId);
   } else {
     post.likes.push(userId);
-    // 🔔 Emit notification to post author
     if (post.author._id.toString() !== userId.toString()) {
       try {
         const io = getIO();
@@ -54,12 +63,10 @@ export const likePostService = async (postId, userId) => {
           text: "liked your post",
           time: "Just now",
           read: false,
-          avatar: null,
         });
       } catch (e) {}
     }
   }
-
   await post.save();
   return await Post.findById(postId)
     .populate("author", "username name avatar isVerified accountType");
@@ -73,7 +80,6 @@ export const addCommentService = async (postId, userId, text) => {
   post.comments.push({ user: userId, text });
   await post.save();
 
-  // 🔔 Emit notification to post author
   if (post.author._id.toString() !== userId.toString()) {
     try {
       const io = getIO();
@@ -84,7 +90,6 @@ export const addCommentService = async (postId, userId, text) => {
         text: `commented: "${text.slice(0, 50)}"`,
         time: "Just now",
         read: false,
-        avatar: null,
       });
     } catch (e) {}
   }
