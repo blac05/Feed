@@ -4,7 +4,23 @@ import auth from "../middleware/auth.js";
 
 const router = express.Router();
 
-// GET /api/users/me
+// Search users
+router.get("/search", auth, async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q) return res.json({ success: true, users: [] });
+    const users = await User.find({
+      $or: [
+        { username: { $regex: q, $options: "i" } },
+        { name: { $regex: q, $options: "i" } },
+      ],
+    }).select("-password").limit(10);
+    res.json({ success: true, users });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 router.get("/me", auth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select("-password");
@@ -14,7 +30,6 @@ router.get("/me", auth, async (req, res) => {
   }
 });
 
-// GET /api/users/:id
 router.get("/:id", async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
@@ -25,7 +40,6 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// PUT /api/users/me
 router.put("/me", auth, async (req, res) => {
   try {
     const { username, name, bio, location, website, avatar, coverImage } = req.body;
@@ -40,7 +54,6 @@ router.put("/me", auth, async (req, res) => {
   }
 });
 
-// POST /api/users/:id/follow
 router.post("/:id/follow", auth, async (req, res) => {
   try {
     if (req.params.id === req.user._id.toString()) {
@@ -49,22 +62,16 @@ router.post("/:id/follow", auth, async (req, res) => {
     const userToFollow = await User.findById(req.params.id);
     const currentUser = await User.findById(req.user._id);
     if (!userToFollow) return res.status(404).json({ message: "User not found" });
-
     const isFollowing = currentUser.following.includes(req.params.id);
-
     if (isFollowing) {
-      // Unfollow
       currentUser.following.pull(req.params.id);
       userToFollow.followers.pull(req.user._id);
     } else {
-      // Follow
       currentUser.following.push(req.params.id);
       userToFollow.followers.push(req.user._id);
     }
-
     await currentUser.save();
     await userToFollow.save();
-
     res.json({ success: true, following: !isFollowing });
   } catch (error) {
     res.status(500).json({ message: error.message });
