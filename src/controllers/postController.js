@@ -1,11 +1,7 @@
 import {
-  createPostService,
-  getAllPostsService,
-  getFollowingPostsService,
-  getPostByIdService,
-  deletePostService,
-  likePostService,
-  addCommentService,
+  createPostService, getAllPostsService, getFollowingPostsService,
+  getPostByIdService, deletePostService, likePostService,
+  reactToPostService, addCommentService,
 } from "../services/postService.js";
 
 export const createPost = async (req, res, next) => {
@@ -46,6 +42,13 @@ export const deletePost = async (req, res, next) => {
 export const likePost = async (req, res, next) => {
   try {
     const post = await likePostService(req.params.id, req.user._id);
+    res.json({ success: true, post });
+  } catch (error) { next(error); }
+};
+
+export const reactToPost = async (req, res, next) => {
+  try {
+    const post = await reactToPostService(req.params.id, req.user._id, req.body.type);
     res.json({ success: true, post });
   } catch (error) { next(error); }
 };
