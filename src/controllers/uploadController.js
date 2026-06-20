@@ -40,6 +40,20 @@ export const uploadImage = async (req, res) => {
   }
 };
 
+export const uploadVideo = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: "No file provided" });
+    const result = await streamUpload(req.file.buffer, {
+      folder: "feed/videos",
+      resource_type: "video",
+      transformation: [{ quality: "auto" }],
+    });
+    res.json({ success: true, url: result.secure_url, publicId: result.public_id });
+  } catch (error) {
+    res.status(500).json({ message: "Video upload failed" });
+  }
+};
+
 export const uploadAvatar = async (req, res) => {
   try {
     if (!req.file) {
