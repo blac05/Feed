@@ -1,7 +1,8 @@
 import {
   createPostService, getAllPostsService, getFollowingPostsService,
+  getTrendingPostsService, getPostsByHashtagService, getTrendingHashtagsService,
   getPostByIdService, deletePostService, likePostService,
-  reactToPostService, addCommentService,
+  reactToPostService, voteOnPollService, addCommentService,
 } from "../services/postService.js";
 
 export const createPost = async (req, res, next) => {
@@ -22,6 +23,27 @@ export const getFollowingPosts = async (req, res, next) => {
   try {
     const posts = await getFollowingPostsService(req.user._id);
     res.json({ success: true, posts });
+  } catch (error) { next(error); }
+};
+
+export const getTrendingPosts = async (req, res, next) => {
+  try {
+    const posts = await getTrendingPostsService();
+    res.json({ success: true, posts });
+  } catch (error) { next(error); }
+};
+
+export const getHashtagPosts = async (req, res, next) => {
+  try {
+    const posts = await getPostsByHashtagService(req.params.tag);
+    res.json({ success: true, posts, tag: req.params.tag });
+  } catch (error) { next(error); }
+};
+
+export const getTrendingHashtags = async (req, res, next) => {
+  try {
+    const hashtags = await getTrendingHashtagsService();
+    res.json({ success: true, hashtags });
   } catch (error) { next(error); }
 };
 
@@ -49,6 +71,13 @@ export const likePost = async (req, res, next) => {
 export const reactToPost = async (req, res, next) => {
   try {
     const post = await reactToPostService(req.params.id, req.user._id, req.body.type);
+    res.json({ success: true, post });
+  } catch (error) { next(error); }
+};
+
+export const voteOnPoll = async (req, res, next) => {
+  try {
+    const post = await voteOnPollService(req.params.id, req.user._id, req.body.optionIndex);
     res.json({ success: true, post });
   } catch (error) { next(error); }
 };
