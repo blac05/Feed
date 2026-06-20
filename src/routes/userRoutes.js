@@ -78,4 +78,37 @@ router.post("/:id/follow", auth, async (req, res) => {
   }
 });
 
+// POST /api/users/bookmark/:postId
+router.post("/bookmark/:postId", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    const postId = req.params.postId;
+    const isBookmarked = user.bookmarks.includes(postId);
+    if (isBookmarked) {
+      user.bookmarks.pull(postId);
+    } else {
+      user.bookmarks.push(postId);
+    }
+    await user.save();
+    res.json({ success: true, bookmarked: !isBookmarked });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// GET /api/users/bookmarks
+router.get("/bookmarks", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).populate({
+      path: "bookmarks",
+      populate: { path: "author", select: "username name avatar isVerified accountType" },
+      options: { sort: { createdAt: -1 } },
+    });
+    res.json({ success: true, bookmarks: user.bookmarks || [] });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
 export default router;
