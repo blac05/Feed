@@ -47,7 +47,6 @@ export const likePostService = async (postId, userId) => {
   const post = await Post.findById(postId)
     .populate("author", "username name avatar isVerified accountType");
   if (!post) throw new Error("Post not found");
-
   const alreadyLiked = post.likes.includes(userId);
   if (alreadyLiked) {
     post.likes.pull(userId);
@@ -57,12 +56,8 @@ export const likePostService = async (postId, userId) => {
       try {
         const io = getIO();
         io.to(post.author._id.toString()).emit("notification", {
-          id: Date.now(),
-          type: "like",
-          user: "Someone",
-          text: "liked your post",
-          time: "Just now",
-          read: false,
+          id: Date.now(), type: "like", user: "Someone",
+          text: "liked your post", time: "Just now", read: false,
         });
       } catch (e) {}
     }
@@ -72,11 +67,43 @@ export const likePostService = async (postId, userId) => {
     .populate("author", "username name avatar isVerified accountType");
 };
 
-export const addCommentService = async (postId, userId, text) => {
+export const reactToPostService = async (postId, userId, reactionType) => {
   const post = await Post.findById(postId)
     .populate("author", "username name avatar isVerified accountType");
   if (!post) throw new Error("Post not found");
 
+  // Remove existing reaction from this user
+  post.reactions = post.reactions.filter(
+    r => r.user.toString() !== userId.toString()
+  );
+  post.likes = post.likes.filter(
+    id => id.toString() !== userId.toString()
+  );
+
+  if (reactionType) {
+    post.reactions.push({ user: userId, type: reactionType });
+    post.likes.push(userId);
+
+    if (post.author._id.toString() !== userId.toString()) {
+      try {
+        const io = getIO();
+        io.to(post.author._id.toString()).emit("notification", {
+          id: Date.now(), type: "like", user: "Someone",
+          text: `reacted to your post`, time: "Just now", read: false,
+        });
+      } catch (e) {}
+    }
+  }
+
+  await post.save();
+  return await Post.findById(postId)
+    .populate("author", "username name avatar isVerified accountType");
+};
+
+export const addCommentService = async (postId, userId, text) => {
+  const post = await Post.findById(postId)
+    .populate("author", "username name avatar isVerified accountType");
+  if (!post) throw new Error("Post not found");
   post.comments.push({ user: userId, text });
   await post.save();
 
@@ -84,12 +111,8 @@ export const addCommentService = async (postId, userId, text) => {
     try {
       const io = getIO();
       io.to(post.author._id.toString()).emit("notification", {
-        id: Date.now(),
-        type: "comment",
-        user: "Someone",
-        text: `commented: "${text.slice(0, 50)}"`,
-        time: "Just now",
-        read: false,
+        id: Date.now(), type: "comment", user: "Someone",
+        text: `commented: "${text.slice(0, 50)}"`, time: "Just now", read: false,
       });
     } catch (e) {}
   }
