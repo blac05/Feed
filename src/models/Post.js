@@ -6,6 +6,12 @@ const postSchema = new mongoose.Schema(
     content: { type: String, required: true },
     image: { type: String, default: "" },
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    reactions: [
+      {
+        user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        type: { type: String, enum: ["like", "love", "haha", "wow", "sad", "angry"], default: "like" },
+      },
+    ],
     comments: [
       {
         user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
