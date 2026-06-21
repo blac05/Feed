@@ -2,25 +2,27 @@ import mongoose from "mongoose";
 
 const eventSchema = new mongoose.Schema(
   {
-    title: {
+    title: { type: String, required: true },
+    description: { type: String, default: "" },
+    image: { type: String, default: "" },
+    host: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    date: { type: Date, required: true },
+    endDate: { type: Date },
+    location: { type: String, default: "" },
+    isOnline: { type: Boolean, default: false },
+    streamUrl: { type: String, default: "" },
+    category: {
       type: String,
-      required: true,
+      enum: ["Music", "Sports", "Tech", "Art", "Business", "Education", "Gaming", "Other"],
+      default: "Other",
     },
-
-    description: String,
-
-    location: String,
-
-    date: Date,
-
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
+    rsvps: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    maxAttendees: { type: Number, default: 0 },
+    isPrivate: { type: Boolean, default: false },
+    price: { type: Number, default: 0 },
+    tags: [{ type: String }],
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 export default mongoose.model("Event", eventSchema);
