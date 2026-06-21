@@ -4,7 +4,7 @@ import {
   releaseEscrowFunds, 
   refundEscrowFunds 
 } from "../controllers/marketplaceController.js";
-import { protect } from "../middleware/authMiddleware.js"; // Adjust path if your auth middleware file is named differently
+import { protect } from "../middleware/auth.js"; // Updated to match your auth.js file
 
 const router = express.Router();
 
