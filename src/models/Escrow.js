@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const EscrowSchema = new mongoose.Schema(
   {
@@ -32,4 +32,6 @@ const EscrowSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Escrow", EscrowSchema);
+// Explicitly declare the model and export it as default
+const Escrow = mongoose.model("Escrow", EscrowSchema);
+export default Escrow;
