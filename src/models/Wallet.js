@@ -1,3 +1,5 @@
+import mongoose from "mongoose";
+
 const WalletSchema = new mongoose.Schema(
   {
     user: {
@@ -20,5 +22,6 @@ const WalletSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const Wallet = mongoose.model("Wallet", walletSchema);
+const Wallet = mongoose.model("Wallet", WalletSchema);
+
 export default Wallet;
