@@ -1,12 +1,12 @@
-const mongoose = require("mongoose");
-const Escrow = require("../models/Escrow");
-const Wallet = require("../models/Wallet");
-const Product = require("../models/Product");
+import mongoose from "mongoose";
+import Escrow from "../models/Escrow.js";
+import Wallet from "../models/Wallet.js";
+import Product from "../models/Product.js";
 
 /**
  * Buyer initiates escrow
  */
-exports.initiateEscrowTransfer = async (req, res) => {
+export const initiateEscrowTransfer = async (req, res) => {
   const session = await mongoose.startSession();
 
   try {
@@ -104,7 +104,7 @@ exports.initiateEscrowTransfer = async (req, res) => {
 /**
  * Buyer releases escrow to seller
  */
-exports.releaseEscrowFunds = async (req, res) => {
+export const releaseEscrowFunds = async (req, res) => {
   const session = await mongoose.startSession();
 
   try {
@@ -199,7 +199,7 @@ exports.releaseEscrowFunds = async (req, res) => {
 /**
  * Refund escrow
  */
-exports.refundEscrowFunds = async (req, res) => {
+export const refundEscrowFunds = async (req, res) => {
   const session = await mongoose.startSession();
 
   try {
