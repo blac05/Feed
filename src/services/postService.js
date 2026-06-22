@@ -17,22 +17,12 @@ const getBlockedAndMutedUsers = async (currentUserId) => {
 // ==========================================
 
 export const createPostService = async (userId, data) => {
-  const hashtagRegex = /#(\w+)/g;
-  const extractedTags = [];
-  let match;
-  while ((match = hashtagRegex.exec(data.content)) !== null) {
-    const cleanTag = match[1].toLowerCase();
-    if (!extractedTags.includes(cleanTag)) {
-      extractedTags.push(cleanTag);
-    }
-  }
-
   const postData = {
     author: userId,
     content: data.content,
     image: data.image || "",
+    video: data.video || "",
     type: data.type || "post",
-    tags: extractedTags,
   };
 
   if (data.quotedPostId) {
@@ -70,7 +60,6 @@ export const deletePostService = async (postId, userId) => {
 // ==========================================
 
 export const getPaginatedPostsService = async (currentUserId, page = 1, limit = 15) => {
-  // DRY Optimisation: Reusing your core compliance filter utility
   const blockedUsers = await getBlockedAndMutedUsers(currentUserId);
   const skip = (page - 1) * limit;
 
@@ -92,7 +81,6 @@ export const getPaginatedFollowingPostsService = async (userId, page = 1, limit 
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");
 
-  // SECURITY FIX: Enforced block/mute exclusion filters so moderated metrics don't leak into the following feed
   const blockedUsers = await getBlockedAndMutedUsers(userId);
   const skip = (page - 1) * limit;
 
