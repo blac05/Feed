@@ -1,22 +1,45 @@
 import Post from "../models/Post.js";
 import User from "../models/User.js";
 import { getIO } from "../sockets/socketServer.js";
+import { createNotification } from "../controllers/notificationController.js";
+
+// ==========================================
+// MODERATION FILTER COMPLIANCE HELPER
+// ==========================================
+const getBlockedAndMutedUsers = async (currentUserId) => {
+  if (!currentUserId) return [];
+  const u = await User.findById(currentUserId).select("blockedUsers mutedUsers");
+  return [...(u?.blockedUsers || []), ...(u?.mutedUsers || [])];
+};
+
+// ==========================================
+// POST MANAGEMENT & CREATION
+// ==========================================
 
 export const createPostService = async (userId, data) => {
+  const hashtagRegex = /#(\w+)/g;
+  const extractedTags = [];
+  let match;
+  while ((match = hashtagRegex.exec(data.content)) !== null) {
+    const cleanTag = match[1].toLowerCase();
+    if (!extractedTags.includes(cleanTag)) {
+      extractedTags.push(cleanTag);
+    }
+  }
+
   const postData = {
     author: userId,
     content: data.content,
     image: data.image || "",
     type: data.type || "post",
+    tags: extractedTags,
   };
 
-  // Quote post
   if (data.quotedPostId) {
     postData.quotedPost = data.quotedPostId;
     postData.type = "quote";
   }
 
-  // Poll
   if (data.poll && data.poll.options?.length >= 2) {
     postData.poll = {
       question: data.poll.question,
@@ -35,8 +58,21 @@ export const createPostService = async (userId, data) => {
     });
 };
 
-export const getAllPostsService = async () => {
-  return await Post.find()
+export const deletePostService = async (postId, userId) => {
+  const post = await Post.findById(postId);
+  if (!post) throw new Error("Post not found");
+  if (post.author.toString() !== userId) throw new Error("Unauthorized");
+  await Post.findByIdAndDelete(postId);
+};
+
+// ==========================================
+// FEED RETRIEVAL AGGREGATIONS (MODERATED)
+// ==========================================
+
+export const getAllPostsService = async (currentUserId) => {
+  const blockedUsers = await getBlockedAndMutedUsers(currentUserId);
+
+  return await Post.find({ author: { $nin: blockedUsers } })
     .populate("author", "username name avatar isVerified accountType")
     .populate({
       path: "quotedPost",
@@ -46,9 +82,14 @@ export const getAllPostsService = async () => {
     .limit(50);
 };
 
-export const getTrendingPostsService = async () => {
-  const since = new Date(Date.now() - 48 * 60 * 60 * 1000); // last 48hrs
-  const posts = await Post.find({ createdAt: { $gte: since } })
+export const getTrendingPostsService = async (currentUserId) => {
+  const since = new Date(Date.now() - 48 * 60 * 60 * 1000);
+  const blockedUsers = await getBlockedAndMutedUsers(currentUserId);
+
+  const posts = await Post.find({ 
+    createdAt: { $gte: since },
+    author: { $nin: blockedUsers }
+  })
     .populate("author", "username name avatar isVerified accountType")
     .populate({
       path: "quotedPost",
@@ -56,20 +97,24 @@ export const getTrendingPostsService = async () => {
     })
     .lean();
 
-  // Calculate trending score in JS
   return posts
     .map(p => {
       const hoursSince = (Date.now() - new Date(p.createdAt)) / (1000 * 60 * 60);
       const decay = Math.pow(hoursSince + 2, 1.5);
-      const score = (p.likes.length * 3 + p.comments.length * 2 + p.reposts.length) / decay;
+      const score = ((p.likes?.length || 0) * 3 + (p.comments?.length || 0) * 2 + (p.reposts?.length || 0)) / decay;
       return { ...p, score };
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, 20);
 };
 
-export const getPostsByHashtagService = async (tag) => {
-  return await Post.find({ tags: tag.toLowerCase() })
+export const getPostsByHashtagService = async (tag, currentUserId) => {
+  const blockedUsers = await getBlockedAndMutedUsers(currentUserId);
+
+  return await Post.find({ 
+    tags: tag.toLowerCase(),
+    author: { $nin: blockedUsers }
+  })
     .populate("author", "username name avatar isVerified accountType")
     .populate({
       path: "quotedPost",
@@ -82,12 +127,14 @@ export const getPostsByHashtagService = async (tag) => {
 export const getTrendingHashtagsService = async () => {
   const since = new Date(Date.now() - 48 * 60 * 60 * 1000);
   const posts = await Post.find({ createdAt: { $gte: since }, tags: { $exists: true, $ne: [] } }).lean();
+  
   const tagCounts = {};
   posts.forEach(p => {
     (p.tags || []).forEach(tag => {
       tagCounts[tag] = (tagCounts[tag] || 0) + 1;
     });
   });
+  
   return Object.entries(tagCounts)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 10)
@@ -97,7 +144,11 @@ export const getTrendingHashtagsService = async () => {
 export const getFollowingPostsService = async (userId) => {
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");
-  return await Post.find({ author: { $in: [...user.following, userId] } })
+
+  const blockedUsers = await getBlockedAndMutedUsers(userId);
+  const targetedFeedAuthors = [...user.following, userId].filter(id => !blockedUsers.includes(id));
+
+  return await Post.find({ author: { $in: targetedFeedAuthors } })
     .populate("author", "username name avatar isVerified accountType")
     .populate({
       path: "quotedPost",
@@ -117,59 +168,92 @@ export const getPostByIdService = async (id) => {
     });
 };
 
-export const deletePostService = async (postId, userId) => {
-  const post = await Post.findById(postId);
-  if (!post) throw new Error("Post not found");
-  if (post.author.toString() !== userId) throw new Error("Unauthorized");
-  await Post.findByIdAndDelete(postId);
-};
+// ==========================================
+// ENGAGEMENT & NOTIFICATION PIPELINES
+// ==========================================
 
 export const likePostService = async (postId, userId) => {
-  const post = await Post.findById(postId)
-    .populate("author", "username name avatar isVerified accountType");
+  const post = await Post.findById(postId).populate("author", "username name avatar isVerified accountType");
   if (!post) throw new Error("Post not found");
+  
+  const actingUser = await User.findById(userId).select("username name");
   const alreadyLiked = post.likes.includes(userId);
+  
   if (alreadyLiked) {
     post.likes.pull(userId);
   } else {
     post.likes.push(userId);
+    
     if (post.author._id.toString() !== userId.toString()) {
+      // 1. Dispatch database persistent notification
+      try {
+        await createNotification({
+          recipient: post.author._id,
+          sender: userId,
+          type: "like",
+          text: "liked your post",
+          postId: post._id,
+          link: `/post/${post._id}`,
+        });
+      } catch (e) {}
+
+      // 2. Dispatch real-time socket event
       try {
         const io = getIO();
         io.to(post.author._id.toString()).emit("notification", {
-          id: Date.now(), type: "like", user: "Someone",
-          text: "liked your post", time: "Just now", read: false,
+          id: Date.now(), 
+          type: "like", 
+          user: actingUser?.name || actingUser?.username || "Someone",
+          text: "liked your post", 
+          time: "Just now", 
+          read: false,
         });
       } catch (e) {}
     }
   }
   await post.save();
-  return await Post.findById(postId)
-    .populate("author", "username name avatar isVerified accountType");
+  return await Post.findById(postId).populate("author", "username name avatar isVerified accountType");
 };
 
 export const reactToPostService = async (postId, userId, reactionType) => {
-  const post = await Post.findById(postId)
-    .populate("author", "username name avatar isVerified accountType");
+  const post = await Post.findById(postId).populate("author", "username name avatar isVerified accountType");
   if (!post) throw new Error("Post not found");
+  
+  const actingUser = await User.findById(userId).select("username name");
   post.reactions = post.reactions.filter(r => r.user.toString() !== userId.toString());
   post.likes = post.likes.filter(id => id.toString() !== userId.toString());
+  
   if (reactionType) {
     post.reactions.push({ user: userId, type: reactionType });
     post.likes.push(userId);
+    
     if (post.author._id.toString() !== userId.toString()) {
+      try {
+        await createNotification({
+          recipient: post.author._id,
+          sender: userId,
+          type: "like",
+          text: `reacted with ${reactionType} to your post`,
+          postId: post._id,
+          link: `/post/${post._id}`,
+        });
+      } catch (e) {}
+
       try {
         const io = getIO();
         io.to(post.author._id.toString()).emit("notification", {
-          id: Date.now(), type: "like", user: "Someone",
-          text: "reacted to your post", time: "Just now", read: false,
+          id: Date.now(), 
+          type: "like", 
+          user: actingUser?.name || actingUser?.username || "Someone",
+          text: `reacted with ${reactionType} to your post`, 
+          time: "Just now", 
+          read: false,
         });
       } catch (e) {}
     }
   }
   await post.save();
-  return await Post.findById(postId)
-    .populate("author", "username name avatar isVerified accountType");
+  return await Post.findById(postId).populate("author", "username name avatar isVerified accountType");
 };
 
 export const voteOnPollService = async (postId, userId, optionIndex) => {
@@ -177,33 +261,49 @@ export const voteOnPollService = async (postId, userId, optionIndex) => {
   if (!post?.poll) throw new Error("Post has no poll");
   if (new Date() > post.poll.endsAt) throw new Error("Poll has ended");
 
-  // Remove previous votes from all options
   post.poll.options.forEach(opt => {
     opt.votes = opt.votes.filter(v => v.toString() !== userId.toString());
   });
 
-  // Add vote to selected option
   if (post.poll.options[optionIndex]) {
     post.poll.options[optionIndex].votes.push(userId);
   }
 
   await post.save();
-  return await Post.findById(postId)
-    .populate("author", "username name avatar isVerified accountType");
+  return await Post.findById(postId).populate("author", "username name avatar isVerified accountType");
 };
 
 export const addCommentService = async (postId, userId, text) => {
-  const post = await Post.findById(postId)
-    .populate("author", "username name avatar isVerified accountType");
+  const post = await Post.findById(postId).populate("author", "username name avatar isVerified accountType");
   if (!post) throw new Error("Post not found");
+  
+  const actingUser = await User.findById(userId).select("username name");
   post.comments.push({ user: userId, text });
   await post.save();
+  
   if (post.author._id.toString() !== userId.toString()) {
+    // 1. Dispatch database persistent notification
+    try {
+      await createNotification({
+        recipient: post.author._id,
+        sender: userId,
+        type: "comment",
+        text: `commented: "${text.slice(0, 60)}"`,
+        postId: post._id,
+        link: `/post/${post._id}`,
+      });
+    } catch (e) {}
+
+    // 2. Dispatch real-time socket event
     try {
       const io = getIO();
       io.to(post.author._id.toString()).emit("notification", {
-        id: Date.now(), type: "comment", user: "Someone",
-        text: `commented: "${text.slice(0, 50)}"`, time: "Just now", read: false,
+        id: Date.now(), 
+        type: "comment", 
+        user: actingUser?.name || actingUser?.username || "Someone",
+        text: `commented: "${text.slice(0, 40)}..."`, 
+        time: "Just now", 
+        read: false,
       });
     } catch (e) {}
   }
@@ -211,3 +311,4 @@ export const addCommentService = async (postId, userId, text) => {
     .populate("author", "username name avatar isVerified accountType")
     .populate("comments.user", "username name avatar isVerified accountType");
 };
+
