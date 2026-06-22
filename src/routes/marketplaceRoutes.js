@@ -4,7 +4,8 @@ import {
   releaseEscrowFunds, 
   refundEscrowFunds 
 } from "../controllers/marketplaceController.js";
-import { protect } from "../middleware/auth.js"; // Updated to match your auth.js file
+// FIXED: Removed the curly braces to correctly import the default export from auth.js as 'protect'
+import protect from "../middleware/auth.js"; 
 
 const router = express.Router();
 

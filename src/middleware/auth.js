@@ -1,10 +1,9 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
-import protect from "../middleware/auth.js";
+
 const auth = async (req, res, next) => {
   try {
-    const token =
-      req.headers.authorization?.split(" ")[1];
+    const token = req.headers.authorization?.split(" ")[1];
 
     if (!token) {
       return res.status(401).json({
@@ -17,8 +16,7 @@ const auth = async (req, res, next) => {
       process.env.JWT_SECRET
     );
 
-    req.user = await User.findById(decoded.id)
-      .select("-password");
+    req.user = await User.findById(decoded.id).select("-password");
 
     next();
   } catch (error) {
