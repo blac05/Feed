@@ -25,6 +25,13 @@ router.get("/search", auth, async (req, res) => {
   }
 });
 
+// Search history (stored in session — stateless, client manages)
+router.get("/search/history", auth, async (req, res) => {
+  // Search history is managed client-side in localStorage
+  // This endpoint is a placeholder for future server-side history
+  res.json({ success: true, history: [] });
+});
+
 // GET /api/users/me (Fetch current session profile)
 router.get("/me", auth, async (req, res) => {
   try {
@@ -151,9 +158,8 @@ router.post("/:id/block", auth, async (req, res) => {
       
       // Clean up connections: Current user stops following target, target loses current user's follow
       currentUser.following.pull(req.params.id);
-      currentUser.followers.pull(req.params.id); // Also clear if target was following current user
+      currentUser.followers.pull(req.params.id);
       
-      // Execute atomic updates across the target user's records to break the connection completely
       await User.findByIdAndUpdate(req.params.id, { 
         $pull: { 
           followers: req.user._id,
@@ -208,5 +214,57 @@ router.post("/bookmark/:postId", auth, async (req, res) => {
   }
 });
 
-export default router;
+// People you may know — mutual followers algorithm
+router.get("/suggestions/people", auth, async (req, res) => {
+  try {
+    const currentUser = await User.findById(req.user._id).select("following blockedUsers");
+    const following = currentUser.following || [];
+    const blocked = currentUser.blockedUsers || [];
+    const excluded = [...following.map(id => id.toString()), req.user._id.toString(), ...blocked.map(id => id.toString())];
 
+    // Find users that people you follow also follow
+    const followingUsers = await User.find({ _id: { $in: following } }).select("following");
+    const mutualCandidates = followingUsers.flatMap(u => u.following.map(id => id.toString()));
+
+    // Count how many mutual connections each candidate has
+    const scoreMap = {};
+    mutualCandidates.forEach(id => {
+      if (!excluded.includes(id)) {
+        scoreMap[id] = (scoreMap[id] || 0) + 1;
+      }
+    });
+
+    // Sort by score and get top candidates
+    const sortedIds = Object.entries(scoreMap)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 8)
+      .map(([id]) => id);
+
+    let suggestions = [];
+    if (sortedIds.length > 0) {
+      suggestions = await User.find({ _id: { $in: sortedIds } })
+        .select("username name avatar isVerified accountType followers bio")
+        .lean();
+      // Attach mutual count
+      suggestions = suggestions.map(u => ({
+        ...u,
+        mutualCount: scoreMap[u._id.toString()] || 0,
+      })).sort((a, b) => b.mutualCount - a.mutualCount);
+    }
+
+    // Pad with recent active users if not enough
+    if (suggestions.length < 5) {
+      const recent = await User.find({ _id: { $nin: [...excluded, ...sortedIds] } })
+        .select("username name avatar isVerified accountType followers bio")
+        .sort({ createdAt: -1 })
+        .limit(8 - suggestions.length);
+      suggestions = [...suggestions, ...recent];
+    }
+
+    res.json({ success: true, users: suggestions });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+export default router;
