@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
-import { authenticator } from "otplib";
-import qrcode from "qrcode";
+import otplib from "otplib";
+import qrcode from "qrcode"; // Fixed: Added missing import for 2FA QR code generation
 import User from "../models/User.js";
 import generateToken from "../utils/generateToken.js";
 import { registerUser } from "../services/authService.js";
@@ -10,6 +10,9 @@ import {
   sendPasswordResetEmail,
   sendWelcomeEmail,
 } from "../services/emailService.js";
+
+// Safe destructuring for CommonJS module compatibility in ESM
+const { authenticator } = otplib;
 
 // ── Register ──────────────────────────────────────────────
 export const register = async (req, res, next) => {
