@@ -5,6 +5,8 @@ const postSchema = new mongoose.Schema(
     author: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     content: { type: String, required: true },
     image: { type: String, default: "" },
+    video: { type: String, default: "" },
+    mediaType: { type: String, enum: ["none", "image", "video"], default: "none" },
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     reactions: [
       {
@@ -20,11 +22,7 @@ const postSchema = new mongoose.Schema(
       },
     ],
     reposts: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-
-    // Quote post
     quotedPost: { type: mongoose.Schema.Types.ObjectId, ref: "Post", default: null },
-
-    // Poll
     poll: {
       question: { type: String, default: "" },
       options: [
@@ -35,8 +33,6 @@ const postSchema = new mongoose.Schema(
       ],
       endsAt: { type: Date },
     },
-
-    // Hashtags extracted from content
     tags: [{ type: String }],
     type: {
       type: String,
@@ -49,14 +45,16 @@ const postSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Auto-extract hashtags before saving
 postSchema.pre("save", function (next) {
   const hashtagRegex = /#(\w+)/g;
   const matches = this.content.match(hashtagRegex);
   if (matches) {
     this.tags = [...new Set(matches.map(t => t.slice(1).toLowerCase()))];
   }
-  // Update trending score
+  if (this.image && !this.video) this.mediaType = "image";
+  else if (this.video) this.mediaType = "video";
+  else this.mediaType = "none";
+
   const hoursSinceCreated = (Date.now() - this.createdAt) / (1000 * 60 * 60);
   const decay = Math.pow(hoursSinceCreated + 2, 1.5);
   this.trendingScore = (this.likes.length * 3 + this.comments.length * 2 + this.reposts.length) / decay;
@@ -64,4 +62,3 @@ postSchema.pre("save", function (next) {
 });
 
 export default mongoose.model("Post", postSchema);
-
