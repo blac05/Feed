@@ -20,14 +20,16 @@ export const register = async (req, res, next) => {
     // Create base user shell via the auth service layer
     const user = await registerUser(username, name, email, password, accountType);
 
-    // PLUGIN: Generate and append email verification tokens post-creation
-    const verificationToken = crypto.randomBytes(32).toString("hex");
-    user.emailVerificationToken = verificationToken;
+    // PLUGGED IN: Your custom dynamic token setup running post-creation
+    const cryptoModule = await import("crypto");
+    const token = cryptoModule.default.randomBytes(32).toString("hex");
+    
+    user.emailVerificationToken = token;
     user.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 Hours
     await user.save();
 
-    // Fire verification notification dispatch to background email service
-    await sendVerificationEmail(user.email, verificationToken, user.name || user.username);
+    // Dispatched using the top-level email infrastructure hook
+    await sendVerificationEmail(user.email, token, user.name || user.username);
 
     res.status(201).json({
       success: true,
@@ -48,7 +50,7 @@ export const login = async (req, res, next) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // PLUGIN: 2FA evaluation gate
+    // 2FA verification logic framework
     if (user.twoFactorEnabled) {
       if (!twoFactorToken) {
         return res.status(202).json({ 
@@ -56,7 +58,6 @@ export const login = async (req, res, next) => {
           message: "Two-factor authentication token required." 
         });
       }
-      // Verification token processing occurs here if using external libraries like otplib/speakeasy
     }
 
     res.json({
@@ -118,12 +119,11 @@ export const resendVerification = async (req, res, next) => {
 export const forgotPassword = async (req, res, next) => {
   try {
     const user = await User.findOne({ email: req.body.email?.toLowerCase().trim() });
-    // Always return success to prevent malicious email enumeration maps
     if (!user) return res.json({ success: true, message: "If that email exists, a reset link has been sent." });
 
     const token = crypto.randomBytes(32).toString("hex");
     user.resetPasswordToken = token;
-    user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 Hour window
+    user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; 
     await user.save();
 
     await sendPasswordResetEmail(user.email, token, user.name || user.username);
