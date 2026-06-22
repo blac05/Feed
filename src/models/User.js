@@ -12,7 +12,6 @@ const userSchema = new mongoose.Schema(
     location: { type: String, default: "" },
     website: { type: String, default: "" },
 
-    // Account type
     accountType: {
       type: String,
       enum: ["personal", "company", "prominent", "creator", "popstar"],
@@ -21,17 +20,38 @@ const userSchema = new mongoose.Schema(
 
     // Verification
     isVerified: { type: Boolean, default: false },
-    verificationRequested: { type: Boolean, default: false },
+    verificationPending: { type: Boolean, default: false },
+
+    // Email verification
+    emailVerified: { type: Boolean, default: false },
+    emailVerificationToken: { type: String },
+    emailVerificationExpires: { type: Date },
+
+    // Password reset
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
 
     // Role
     role: { type: String, enum: ["user", "admin"], default: "user" },
+
+    // Moderation
+    isBanned: { type: Boolean, default: false },
+    banReason: { type: String, default: "" },
+
+    // Block / Mute
+    blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    mutedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 
     // Social
     followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     following: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     bookmarks: [{ type: mongoose.Schema.Types.ObjectId, ref: "Post" }],
+
+    // Notifications
+    pushNotifications: { type: Boolean, default: true },
   },
   { timestamps: true }
 );
 
 export default mongoose.model("User", userSchema);
+
