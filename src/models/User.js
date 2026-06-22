@@ -11,7 +11,6 @@ const userSchema = new mongoose.Schema(
     bio: { type: String, default: "" },
     location: { type: String, default: "" },
     website: { type: String, default: "" },
-
     accountType: {
       type: String,
       enum: ["personal", "company", "prominent", "creator", "popstar"],
@@ -31,6 +30,11 @@ const userSchema = new mongoose.Schema(
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
 
+    // 2FA
+    twoFactorEnabled: { type: Boolean, default: false },
+    twoFactorSecret: { type: String, default: "" },
+    twoFactorTempSecret: { type: String, default: "" },
+
     // Role
     role: { type: String, enum: ["user", "admin"], default: "user" },
 
@@ -47,11 +51,11 @@ const userSchema = new mongoose.Schema(
     following: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     bookmarks: [{ type: mongoose.Schema.Types.ObjectId, ref: "Post" }],
 
-    // Notifications
+    // Preferences
     pushNotifications: { type: Boolean, default: true },
+    lastSeen: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );
 
 export default mongoose.model("User", userSchema);
-
