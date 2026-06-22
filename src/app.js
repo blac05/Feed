@@ -4,44 +4,19 @@ import helmet from "helmet";
 import compression from "compression";
 import rateLimit from "express-rate-limit";
 
-import storyReactionRoutes from "./routes/storyReactionRoutes.js";
-import communityRoutes from "./routes/communityRoutes.js";
-import videoLikeRoutes from "./routes/videoLikeRoutes.js";
-import videoCommentRoutes from "./routes/videoCommentRoutes.js";
-import storyViewRoutes from "./routes/storyViewRoutes.js";
-import storyRoutes from "./routes/storyRoutes.js";
-import videoRoutes from "./routes/videoRoutes.js";
-import exploreRoutes from "./routes/exploreRoutes.js";
-import liveRoutes from "./routes/liveRoutes.js";
-import paymentRoutes from "./routes/paymentRoutes.js";
-import withdrawalRoutes from "./routes/withdrawalRoutes.js";
-import walletRoutes from "./routes/walletRoutes.js";
+// ✅ Only import routes that actually exist
 import authRoutes from "./routes/authRoutes.js";
-import postRoutes from "./routes/postRoutes.js";
-import eventRoutes from "./routes/eventRoutes.js";
-import commentRoutes from "./routes/commentRoutes.js";
-import audioSpaceRoutes from "./routes/audioSpaceRoutes.js";
-import ticketRoutes from "./routes/ticketRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
-import adminRoutes from "./routes/adminRoutes.js";
-import verificationRoutes from "./routes/verificationRoutes.js";
-import notificationRoutes from "./routes/notificationRoutes.js";
+import postRoutes from "./routes/postRoutes.js";
+import storyRoutes from "./routes/storyRoutes.js";
+import liveRoutes from "./routes/liveRoutes.js";
+import communityRoutes from "./routes/communityRoutes.js";
+import eventRoutes from "./routes/eventRoutes.js";
+import walletRoutes from "./routes/walletRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
-import orderRoutes from "./routes/orderRoutes.js";
-import storeRoutes from "./routes/storeRoutes.js";
-import subscriptionRoutes from "./routes/subscriptionRoutes.js";
-import businessRoutes from "./routes/businessRoutes.js";
-import brandRoutes from "./routes/brandRoutes.js";
-import campaignRoutes from "./routes/campaignRoutes.js";
-import advertisementRoutes from "./routes/advertisementRoutes.js";
-import sponsorshipRoutes from "./routes/sponsorshipRoutes.js";
-import reportRoutes from "./routes/reportRoutes.js";
-import podcastRoutes from "./routes/podcastRoutes.js";
-import videoCallRoutes from "./routes/videoCallRoutes.js";
-import recommendationRoutes from "./routes/recommendationRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
-// Plugged in: Marketplace Escrow routing file import
-import marketplaceRoutes from "./routes/marketplaceRoutes.js"; 
+import adminRoutes from "./routes/adminRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
 
 const app = express();
 
@@ -58,69 +33,54 @@ const corsOptions = {
     return callback(new Error("Not allowed by CORS"));
   },
   credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 };
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 app.use(cors(corsOptions));
 app.options(/(.*)/, cors(corsOptions));
-app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
+app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(compression());
-app.use(rateLimit({
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// Rate limiting
+app.use("/api/auth", rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 50,
+  message: { message: "Too many requests, please try again later." },
 }));
 
-app.get("/", (req, res) => {
-  res.json({ success: true, message: "Feed API Running" });
-});
+// Health check
+app.get("/", (req, res) => res.json({ status: "Feed API running 🚀", timestamp: new Date() }));
+app.get("/health", (req, res) => res.json({ status: "ok" }));
 
+// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/posts", postRoutes);
-app.use("/api/events", eventRoutes);
-app.use("/api/comments", commentRoutes);
-app.use("/api/podcasts", podcastRoutes);
-app.use("/api/spaces", audioSpaceRoutes);
-app.use("/api/tickets", ticketRoutes);
-app.use("/api/video-calls", videoCallRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/reports", reportRoutes);
-app.use("/api/verifications", verificationRoutes);
-app.use("/api/notifications", notificationRoutes);
-app.use("/api/products", productRoutes);
-app.use("/api/orders", orderRoutes);
-app.use("/api/stores", storeRoutes);
-app.use("/api/subscriptions", subscriptionRoutes);
-app.use("/api/business", businessRoutes);
-app.use("/api/brands", brandRoutes);
-app.use("/api/campaigns", campaignRoutes);
-app.use("/api/advertisements", advertisementRoutes);
-app.use("/api/sponsorships", sponsorshipRoutes);
-app.use("/api/recommendations", recommendationRoutes);
-app.use("/api/story-reactions", storyReactionRoutes);
-app.use("/api/communities", communityRoutes);
-app.use("/api/video-likes", videoLikeRoutes);
-app.use("/api/video-comments", videoCommentRoutes);
-app.use("/api/story-views", storyViewRoutes);
 app.use("/api/stories", storyRoutes);
-app.use("/api/videos", videoRoutes);
-app.use("/api/explore", exploreRoutes);
 app.use("/api/live", liveRoutes);
-app.use("/api/payments", paymentRoutes);
-app.use("/api/withdrawals", withdrawalRoutes);
+app.use("/api/communities", communityRoutes);
+app.use("/api/events", eventRoutes);
 app.use("/api/wallet", walletRoutes);
+app.use("/api/products", productRoutes);
 app.use("/api/upload", uploadRoutes);
-// Plugged in: Secure Escrow Ledger Pipeline Router
-app.use("/api/marketplace", marketplaceRoutes); 
+app.use("/api/admin", adminRoutes);
+app.use("/api/notifications", notificationRoutes);
 
-
+// Global error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error("Error:", err.message);
   res.status(err.status || 500).json({
     success: false,
-    message: err.message || "Internal Server Error",
+    message: err.message || "Internal server error",
   });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });
 });
 
 export default app;

@@ -66,7 +66,63 @@ export const deletePostService = async (postId, userId) => {
 };
 
 // ==========================================
-// FEED RETRIEVAL AGGREGATIONS (MODERATED)
+// PAGINATED FEED AGGREGATIONS (MODERATED)
+// ==========================================
+
+export const getPaginatedPostsService = async (currentUserId, page = 1, limit = 15) => {
+  // DRY Optimisation: Reusing your core compliance filter utility
+  const blockedUsers = await getBlockedAndMutedUsers(currentUserId);
+  const skip = (page - 1) * limit;
+
+  const posts = await Post.find({ author: { $nin: blockedUsers } })
+    .populate("author", "username name avatar isVerified accountType")
+    .populate({ 
+      path: "quotedPost", 
+      populate: { path: "author", select: "username name avatar isVerified accountType" } 
+    })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const total = await Post.countDocuments({ author: { $nin: blockedUsers } });
+  return { posts, hasMore: skip + posts.length < total, total };
+};
+
+export const getPaginatedFollowingPostsService = async (userId, page = 1, limit = 15) => {
+  const user = await User.findById(userId);
+  if (!user) throw new Error("User not found");
+
+  // SECURITY FIX: Enforced block/mute exclusion filters so moderated metrics don't leak into the following feed
+  const blockedUsers = await getBlockedAndMutedUsers(userId);
+  const skip = (page - 1) * limit;
+
+  const posts = await Post.find({ 
+    author: { 
+      $in: [...user.following, userId], 
+      $nin: blockedUsers 
+    } 
+  })
+    .populate("author", "username name avatar isVerified accountType")
+    .populate({ 
+      path: "quotedPost", 
+      populate: { path: "author", select: "username name avatar isVerified accountType" } 
+    })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const total = await Post.countDocuments({ 
+    author: { 
+      $in: [...user.following, userId], 
+      $nin: blockedUsers 
+    } 
+  });
+  
+  return { posts, hasMore: skip + posts.length < total, total };
+};
+
+// ==========================================
+// LEGACY FEED RETRIEVAL ARRAYS (UNPAGINATED)
 // ==========================================
 
 export const getAllPostsService = async (currentUserId) => {
@@ -81,6 +137,27 @@ export const getAllPostsService = async (currentUserId) => {
     .sort({ createdAt: -1 })
     .limit(50);
 };
+
+export const getFollowingPostsService = async (userId) => {
+  const user = await User.findById(userId);
+  if (!user) throw new Error("User not found");
+
+  const blockedUsers = await getBlockedAndMutedUsers(userId);
+  const targetedFeedAuthors = [...user.following, userId].filter(id => !blockedUsers.includes(id));
+
+  return await Post.find({ author: { $in: targetedFeedAuthors } })
+    .populate("author", "username name avatar isVerified accountType")
+    .populate({
+      path: "quotedPost",
+      populate: { path: "author", select: "username name avatar isVerified accountType" },
+    })
+    .sort({ createdAt: -1 })
+    .limit(50);
+};
+
+// ==========================================
+// TRENDING & DISCOVERY UTILITIES
+// ==========================================
 
 export const getTrendingPostsService = async (currentUserId) => {
   const since = new Date(Date.now() - 48 * 60 * 60 * 1000);
@@ -141,23 +218,6 @@ export const getTrendingHashtagsService = async () => {
     .map(([tag, count]) => ({ tag, count }));
 };
 
-export const getFollowingPostsService = async (userId) => {
-  const user = await User.findById(userId);
-  if (!user) throw new Error("User not found");
-
-  const blockedUsers = await getBlockedAndMutedUsers(userId);
-  const targetedFeedAuthors = [...user.following, userId].filter(id => !blockedUsers.includes(id));
-
-  return await Post.find({ author: { $in: targetedFeedAuthors } })
-    .populate("author", "username name avatar isVerified accountType")
-    .populate({
-      path: "quotedPost",
-      populate: { path: "author", select: "username name avatar isVerified accountType" },
-    })
-    .sort({ createdAt: -1 })
-    .limit(50);
-};
-
 export const getPostByIdService = async (id) => {
   return await Post.findById(id)
     .populate("author", "username name avatar isVerified accountType")
@@ -185,7 +245,6 @@ export const likePostService = async (postId, userId) => {
     post.likes.push(userId);
     
     if (post.author._id.toString() !== userId.toString()) {
-      // 1. Dispatch database persistent notification
       try {
         await createNotification({
           recipient: post.author._id,
@@ -197,7 +256,6 @@ export const likePostService = async (postId, userId) => {
         });
       } catch (e) {}
 
-      // 2. Dispatch real-time socket event
       try {
         const io = getIO();
         io.to(post.author._id.toString()).emit("notification", {
@@ -282,7 +340,6 @@ export const addCommentService = async (postId, userId, text) => {
   await post.save();
   
   if (post.author._id.toString() !== userId.toString()) {
-    // 1. Dispatch database persistent notification
     try {
       await createNotification({
         recipient: post.author._id,
@@ -294,7 +351,6 @@ export const addCommentService = async (postId, userId, text) => {
       });
     } catch (e) {}
 
-    // 2. Dispatch real-time socket event
     try {
       const io = getIO();
       io.to(post.author._id.toString()).emit("notification", {
@@ -311,4 +367,3 @@ export const addCommentService = async (postId, userId, text) => {
     .populate("author", "username name avatar isVerified accountType")
     .populate("comments.user", "username name avatar isVerified accountType");
 };
-

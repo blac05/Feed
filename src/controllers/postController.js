@@ -1,8 +1,16 @@
 import {
-  createPostService, getAllPostsService, getFollowingPostsService,
-  getTrendingPostsService, getPostsByHashtagService, getTrendingHashtagsService,
-  getPostByIdService, deletePostService, likePostService,
-  reactToPostService, voteOnPollService, addCommentService,
+  createPostService,
+  getPaginatedPostsService,
+  getPaginatedFollowingPostsService,
+  getTrendingPostsService,
+  getPostsByHashtagService,
+  getTrendingHashtagsService,
+  getPostByIdService,
+  deletePostService,
+  likePostService,
+  reactToPostService,
+  voteOnPollService,
+  addCommentService,
 } from "../services/postService.js";
 
 export const createPost = async (req, res, next) => {
@@ -14,28 +22,32 @@ export const createPost = async (req, res, next) => {
 
 export const getPosts = async (req, res, next) => {
   try {
-    const posts = await getAllPostsService();
-    res.json({ success: true, posts });
+    const { page = 1, limit = 15 } = req.query;
+    const result = await getPaginatedPostsService(req.user?._id, Number(page), Number(limit));
+    res.json({ success: true, ...result });
   } catch (error) { next(error); }
 };
 
 export const getFollowingPosts = async (req, res, next) => {
   try {
-    const posts = await getFollowingPostsService(req.user._id);
-    res.json({ success: true, posts });
+    const { page = 1, limit = 15 } = req.query;
+    const result = await getPaginatedFollowingPostsService(req.user._id, Number(page), Number(limit));
+    res.json({ success: true, ...result });
   } catch (error) { next(error); }
 };
 
 export const getTrendingPosts = async (req, res, next) => {
   try {
-    const posts = await getTrendingPostsService();
+    // Retained req.user?._id safety check to filter blocked/muted accounts from trending feeds
+    const posts = await getTrendingPostsService(req.user?._id);
     res.json({ success: true, posts });
   } catch (error) { next(error); }
 };
 
 export const getHashtagPosts = async (req, res, next) => {
   try {
-    const posts = await getPostsByHashtagService(req.params.tag);
+    // Retained req.user?._id safety check to filter blocked/muted accounts from hashtag searches
+    const posts = await getPostsByHashtagService(req.params.tag, req.user?._id);
     res.json({ success: true, posts, tag: req.params.tag });
   } catch (error) { next(error); }
 };
