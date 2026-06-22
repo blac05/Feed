@@ -1,34 +1,27 @@
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
+import { authenticator } from "otplib";
+import qrcode from "qrcode";
 import User from "../models/User.js";
 import generateToken from "../utils/generateToken.js";
 import { registerUser } from "../services/authService.js";
-import { 
-  sendVerificationEmail, 
-  sendPasswordResetEmail, 
-  sendWelcomeEmail 
+import {
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+  sendWelcomeEmail,
 } from "../services/emailService.js";
 
-// ==========================================
-// CORE AUTHENTICATION PLUGINS
-// ==========================================
-
+// ── Register ──────────────────────────────────────────────
 export const register = async (req, res, next) => {
   try {
     const { username, name, email, password, accountType } = req.body;
-    
-    // Create base user shell via the auth service layer
     const user = await registerUser(username, name, email, password, accountType);
 
-    // PLUGGED IN: Your custom dynamic token setup running post-creation
-    const cryptoModule = await import("crypto");
-    const token = cryptoModule.default.randomBytes(32).toString("hex");
-    
+    const token = crypto.randomBytes(32).toString("hex");
     user.emailVerificationToken = token;
-    user.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 Hours
+    user.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000;
     await user.save();
 
-    // Dispatched using the top-level email infrastructure hook
     await sendVerificationEmail(user.email, token, user.name || user.username);
 
     res.status(201).json({
@@ -41,39 +34,52 @@ export const register = async (req, res, next) => {
   }
 };
 
+// ── Login ─────────────────────────────────────────────────
 export const login = async (req, res, next) => {
   try {
     const { email, password, twoFactorToken } = req.body;
-    const user = await User.findOne({ email });
-    
+    const user = await User.findOne({ email: email?.toLowerCase().trim() });
+
     if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(401).json({ message: "Invalid credentials" });
+      return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    // 2FA verification logic framework
+    if (user.isBanned) {
+      return res.status(403).json({ message: `Account banned: ${user.banReason || "Community guidelines violation"}` });
+    }
+
+    // 2FA check
     if (user.twoFactorEnabled) {
       if (!twoFactorToken) {
-        return res.status(202).json({ 
-          requires2FA: true, 
-          message: "Two-factor authentication token required." 
+        return res.status(202).json({
+          requires2FA: true,
+          message: "Two-factor authentication token required",
         });
       }
+      const isValid = authenticator.verify({
+        token: twoFactorToken,
+        secret: user.twoFactorSecret,
+      });
+      if (!isValid) {
+        return res.status(401).json({ message: "Invalid 2FA token" });
+      }
     }
+
+    // Update last seen
+    user.lastSeen = new Date();
+    await user.save();
 
     res.json({
       success: true,
       token: generateToken(user._id),
-      user,
+      user: { ...user.toObject(), password: undefined },
     });
   } catch (error) {
     next(error);
   }
 };
 
-// ==========================================
-// EMAIL VERIFICATION LAYER
-// ==========================================
-
+// ── Email Verification ────────────────────────────────────
 export const verifyEmail = async (req, res, next) => {
   try {
     const user = await User.findOne({
@@ -112,10 +118,7 @@ export const resendVerification = async (req, res, next) => {
   }
 };
 
-// ==========================================
-// ACCOUNT RECOVERY & PASSWORD SECURITY
-// ==========================================
-
+// ── Password ──────────────────────────────────────────────
 export const forgotPassword = async (req, res, next) => {
   try {
     const user = await User.findOne({ email: req.body.email?.toLowerCase().trim() });
@@ -123,7 +126,7 @@ export const forgotPassword = async (req, res, next) => {
 
     const token = crypto.randomBytes(32).toString("hex");
     user.resetPasswordToken = token;
-    user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; 
+    user.resetPasswordExpires = Date.now() + 60 * 60 * 1000;
     await user.save();
 
     await sendPasswordResetEmail(user.email, token, user.name || user.username);
@@ -151,7 +154,7 @@ export const resetPassword = async (req, res, next) => {
     user.resetPasswordExpires = undefined;
     await user.save();
 
-    res.json({ success: true, message: "Password reset successful! You can now log in." });
+    res.json({ success: true, message: "Password reset successful!" });
   } catch (error) {
     next(error);
   }
@@ -179,25 +182,28 @@ export const changePassword = async (req, res, next) => {
   }
 };
 
-// ==========================================
-// TWO-FACTOR AUTHENTICATION ENGINE (2FA)
-// ==========================================
-
+// ── Two-Factor Authentication ─────────────────────────────
 export const initiate2FA = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const secret = crypto.randomBytes(10).toString("hex").toUpperCase(); 
-    user.twoFactorSecret = secret;
+    // Generate a new TOTP secret
+    const secret = authenticator.generateSecret();
+    user.twoFactorTempSecret = secret;
     await user.save();
 
-    const otpauthUrl = `otpauth://totp/FeedApp:${user.email}?secret=${secret}&issuer=FeedApp`;
+    const appName = "Feed";
+    const otpauthUrl = authenticator.keyuri(user.email, appName, secret);
+
+    // Generate QR code as data URL
+    const qrDataUrl = await qrcode.toDataURL(otpauthUrl);
 
     res.json({
       success: true,
       secret,
       otpauthUrl,
+      qrDataUrl,
     });
   } catch (error) {
     next(error);
@@ -210,19 +216,65 @@ export const verify2FA = async (req, res, next) => {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const isValidToken = token && token.length === 6; 
-    if (!isValidToken) {
-      return res.status(400).json({ message: "Verification failed. Invalid token sequence." });
+    if (!user.twoFactorTempSecret) {
+      return res.status(400).json({ message: "Please initiate 2FA setup first" });
     }
 
+    const isValid = authenticator.verify({
+      token,
+      secret: user.twoFactorTempSecret,
+    });
+
+    if (!isValid) {
+      return res.status(400).json({ message: "Invalid verification code. Check your authenticator app." });
+    }
+
+    // Activate 2FA
+    user.twoFactorSecret = user.twoFactorTempSecret;
+    user.twoFactorTempSecret = "";
     user.twoFactorEnabled = true;
     await user.save();
 
     res.json({
       success: true,
-      message: "Two-Factor Authentication shield active! 🛡️",
-      twoFactorEnabled: true
+      message: "Two-factor authentication enabled! 🛡️",
+      twoFactorEnabled: true,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const disable2FA = async (req, res, next) => {
+  try {
+    const { token } = req.body;
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (!user.twoFactorEnabled) {
+      return res.status(400).json({ message: "2FA is not enabled" });
+    }
+
+    const isValid = authenticator.verify({ token, secret: user.twoFactorSecret });
+    if (!isValid) {
+      return res.status(400).json({ message: "Invalid verification code" });
+    }
+
+    user.twoFactorEnabled = false;
+    user.twoFactorSecret = "";
+    user.twoFactorTempSecret = "";
+    await user.save();
+
+    res.json({ success: true, message: "Two-factor authentication disabled" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const get2FAStatus = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id).select("twoFactorEnabled");
+    res.json({ success: true, twoFactorEnabled: user?.twoFactorEnabled || false });
   } catch (error) {
     next(error);
   }
