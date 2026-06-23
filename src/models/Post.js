@@ -41,23 +41,38 @@ const postSchema = new mongoose.Schema(
     },
     views: { type: Number, default: 0 },
     trendingScore: { type: Number, default: 0 },
+    
+    // Content Moderation & AI Flag Isolation Toggle
+    hidden: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
+// Indexes to speed up lookups for public feed aggregation engines
+postSchema.index({ hidden: 1, author: 1, createdAt: -1 });
+postSchema.index({ tags: 1, hidden: 1, createdAt: -1 });
+
 postSchema.pre("save", function (next) {
+  // 1. Regex parsing for continuous hashtag compilation
   const hashtagRegex = /#(\w+)/g;
   const matches = this.content.match(hashtagRegex);
   if (matches) {
     this.tags = [...new Set(matches.map(t => t.slice(1).toLowerCase()))];
   }
+
+  // 2. Strict media state evaluation fallback
   if (this.image && !this.video) this.mediaType = "image";
   else if (this.video) this.mediaType = "video";
   else this.mediaType = "none";
 
-  const hoursSinceCreated = (Date.now() - this.createdAt) / (1000 * 60 * 60);
+  // 3. CRITICAL BUGFIX: Fallback to current system time if document is brand new
+  const recordCreationTime = this.createdAt || new Date();
+  const hoursSinceCreated = (Date.now() - recordCreationTime) / (1000 * 60 * 60);
   const decay = Math.pow(hoursSinceCreated + 2, 1.5);
-  this.trendingScore = (this.likes.length * 3 + this.comments.length * 2 + this.reposts.length) / decay;
+  
+  this.trendingScore = 
+    ((this.likes?.length || 0) * 3 + (this.comments?.length || 0) * 2 + (this.reposts?.length || 0)) / decay;
+
   next();
 });
 
