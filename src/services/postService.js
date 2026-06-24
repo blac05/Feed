@@ -1,4 +1,7 @@
 // ── Headlines Feed Services ────────────────────────────────
+import Post from "../models/Post.js";
+import User from "../models/User.js";
+
 
 export const getHeadlinesHotService = async (currentUserId, page = 1, limit = 20) => {
   let blocked = [];

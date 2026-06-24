@@ -1,6 +1,6 @@
 import express from "express";
 import auth from "../middleware/auth.js";
-import { getVapidKey, subscribe, unsubscribe } from "../controllers/pushController.js";
+import { getVapidKey, subscribe, unsubscribe } from "../controllers/pushController.jsx";
 
 const router = express.Router();
 

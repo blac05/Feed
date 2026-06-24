@@ -1,12 +1,10 @@
 import {
-  createPostService, getAllPostsService, getPaginatedPostsService,
-  getFollowingPostsService, getPaginatedFollowingPostsService,
-  getTrendingPostsService, getPostsByHashtagService, getTrendingHashtagsService,
-  getPostByIdService, deletePostService, likePostService,
-  reactToPostService, voteOnPollService, addCommentService,
-  getHeadlinesHotService, getHeadlinesNewService,
-  getHeadlinesTopService, getHeadlinesRisingService,
-  voteOnPostService, giveAwardService,
+  getHeadlinesHotService,
+  getHeadlinesNewService,
+  getHeadlinesTopService,
+  getHeadlinesRisingService,
+  voteOnPostService,
+  giveAwardService,
 } from "../services/postService.js";
 
 // ... (keep all existing exports) ...
