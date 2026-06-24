@@ -154,7 +154,7 @@ export const getTrendingPosts = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-export const getPostById = async (req, res, next) => {
+export const getPost = async (req, res, next) => {
   try {
     const post = await getPostByIdService(req.params.id);
     res.json({ success: true, post });
@@ -168,7 +168,7 @@ export const deletePost = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-export const getPostsByHashtag = async (req, res, next) => {
+export const getHashtagPosts = async (req, res, next) => {
   try {
     const { page = 1, limit = 20 } = req.query;
     const result = await getPostsByHashtagService(req.params.hashtag, Number(page), Number(limit));
