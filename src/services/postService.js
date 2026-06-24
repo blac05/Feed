@@ -1,19 +1,178 @@
-// ── Headlines Feed Services ────────────────────────────────
 import Post from "../models/Post.js";
 import User from "../models/User.js";
 
-// Helper function to get blocked and muted users
-const getBlockedUsers = async (currentUserId) => {
-  if (!currentUserId) return [];
-  const user = await User.findById(currentUserId).select("blockedUsers mutedUsers");
-  return [...(user?.blockedUsers || []), ...(user?.mutedUsers || [])];
+// ── Core Post Services ──────────────────────────────────────
+
+export const createPostService = async (postData) => {
+  const post = new Post(postData);
+  await post.save();
+  return await Post.findById(post._id)
+    .populate("author", "username name avatar isVerified accountType")
+    .populate("community", "name image category");
 };
 
-// Get Hot posts Service
-export const getHeadlinesHotService = async (currentUserId, page = 1, limit = 20) => {
-  const blocked = await getBlockedUsers(currentUserId);
-  const skip = (page - 1) * limit;
+export const getAllPostsService = async () => {
+  return await Post.find({ hidden: { $ne: true } })
+    .populate("author", "username name avatar isVerified accountType")
+    .populate("community", "name image category")
+    .sort({ createdAt: -1 });
+};
 
+export const getPaginatedPostsService = async (page = 1, limit = 20) => {
+  const skip = (page - 1) * limit;
+  const posts = await Post.find({ hidden: { $ne: true } })
+    .populate("author", "username name avatar isVerified accountType")
+    .populate("community", "name image category")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+  const total = await Post.countDocuments({ hidden: { $ne: true } });
+  return { posts, hasMore: skip + posts.length < total };
+};
+
+export const getFollowingPostsService = async (userId) => {
+  const user = await User.findById(userId).select("following blockedUsers mutedUsers");
+  const followingIds = user?.following || [];
+  const blocked = [...(user?.blockedUsers || []), ...(user?.mutedUsers || [])];
+
+  return await Post.find({
+    author: { $in: followingIds, $nin: blocked },
+    hidden: { $ne: true }
+  })
+    .populate("author", "username name avatar isVerified accountType")
+    .populate("community", "name image category")
+    .sort({ createdAt: -1 });
+};
+
+export const getPaginatedFollowingPostsService = async (userId, page = 1, limit = 20) => {
+  const user = await User.findById(userId).select("following blockedUsers mutedUsers");
+  const followingIds = user?.following || [];
+  const blocked = [...(user?.blockedUsers || []), ...(user?.mutedUsers || [])];
+  
+  const skip = (page - 1) * limit;
+  const posts = await Post.find({
+    author: { $in: followingIds, $nin: blocked },
+    hidden: { $ne: true }
+  })
+    .populate("author", "username name avatar isVerified accountType")
+    .populate("community", "name image category")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const total = await Post.countDocuments({
+    author: { $in: followingIds, $nin: blocked },
+    hidden: { $ne: true }
+  });
+
+  return { posts, hasMore: skip + posts.length < total };
+};
+
+export const getTrendingPostsService = async () => {
+  // Sorts by higher engagement metrics (likes, hotScore, or voteScore)
+  return await Post.find({ hidden: { $ne: true } })
+    .populate("author", "username name avatar isVerified accountType")
+    .populate("community", "name image category")
+    .sort({ hotScore: -1, voteScore: -1, createdAt: -1 })
+    .limit(10);
+};
+
+export const getPostsByHashtagService = async (hashtag, page = 1, limit = 20) => {
+  const skip = (page - 1) * limit;
+  const cleanHashtag = hashtag.startsWith("#") ? hashtag : `#${hashtag}`;
+  
+  const posts = await Post.find({ hashtags: cleanHashtag, hidden: { $ne: true } })
+    .populate("author", "username name avatar isVerified accountType")
+    .populate("community", "name image category")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const total = await Post.countDocuments({ hashtags: cleanHashtag, hidden: { $ne: true } });
+  return { posts, hasMore: skip + posts.length < total };
+};
+
+export const getTrendingHashtagsService = async () => {
+  // Simple aggregation fallback or custom logic to find top tags
+  return [];
+};
+
+export const getPostByIdService = async (postId) => {
+  const post = await Post.findById(postId)
+    .populate("author", "username name avatar isVerified accountType")
+    .populate("community", "name image category")
+    .populate({ path: "quotedPost", populate: { path: "author", select: "username name avatar isVerified accountType" } })
+    .populate({ path: "comments.author", select: "username name avatar isVerified accountType" });
+  if (!post) throw new Error("Post not found");
+  return post;
+};
+
+export const deletePostService = async (postId, userId) => {
+  const post = await Post.findOne({ _id: postId, author: userId });
+  if (!post) throw new Error("Post not found or unauthorized");
+  await post.deleteOne();
+  return { success: true };
+};
+
+export const likePostService = async (postId, userId) => {
+  const post = await Post.findById(postId);
+  if (!post) throw new Error("Post not found");
+
+  const hasLiked = post.likes.includes(userId);
+  if (hasLiked) {
+    post.likes = post.likes.filter(id => id.toString() !== userId.toString());
+  } else {
+    post.likes.push(userId);
+  }
+
+  await post.save();
+  return post;
+};
+
+export const reactToPostService = async (postId, userId, reactionType) => {
+  const post = await Post.findById(postId);
+  if (!post) throw new Error("Post not found");
+  
+  // Custom logic based on your reaction schema structure
+  return post;
+};
+
+export const voteOnPollService = async (postId, userId, optionId) => {
+  const post = await Post.findById(postId);
+  if (!post) throw new Error("Post not found");
+  
+  // Custom logic based on your poll schema structure
+  return post;
+};
+
+export const addCommentService = async (postId, userId, text) => {
+  const post = await Post.findById(postId);
+  if (!post) throw new Error("Post not found");
+
+  const newComment = {
+    author: userId,
+    text,
+    createdAt: new Date(),
+  };
+
+  post.comments.push(newComment);
+  await post.save();
+
+  return await Post.findById(postId)
+    .populate("author", "username name avatar isVerified accountType")
+    .populate("community", "name image category")
+    .populate({ path: "comments.author", select: "username name avatar isVerified accountType" });
+};
+
+// ── Headlines Feed Services ────────────────────────────────
+
+export const getHeadlinesHotService = async (currentUserId, page = 1, limit = 20) => {
+  let blocked = [];
+  if (currentUserId) {
+    const u = await User.findById(currentUserId).select("blockedUsers mutedUsers");
+    blocked = [...(u?.blockedUsers || []), ...(u?.mutedUsers || [])];
+  }
+  const skip = (page - 1) * limit;
   const posts = await Post.find({ hidden: { $ne: true }, author: { $nin: blocked } })
     .populate("author", "username name avatar isVerified accountType")
     .populate("community", "name image category")
@@ -21,16 +180,17 @@ export const getHeadlinesHotService = async (currentUserId, page = 1, limit = 20
     .sort({ hotScore: -1 })
     .skip(skip)
     .limit(limit);
-
   const total = await Post.countDocuments({ hidden: { $ne: true } });
   return { posts, hasMore: skip + posts.length < total };
 };
 
-// Get New posts Service
 export const getHeadlinesNewService = async (currentUserId, page = 1, limit = 20) => {
-  const blocked = await getBlockedUsers(currentUserId);
+  let blocked = [];
+  if (currentUserId) {
+    const u = await User.findById(currentUserId).select("blockedUsers mutedUsers");
+    blocked = [...(u?.blockedUsers || []), ...(u?.mutedUsers || [])];
+  }
   const skip = (page - 1) * limit;
-
   const posts = await Post.find({ hidden: { $ne: true }, author: { $nin: blocked } })
     .populate("author", "username name avatar isVerified accountType")
     .populate("community", "name image category")
@@ -38,19 +198,20 @@ export const getHeadlinesNewService = async (currentUserId, page = 1, limit = 20
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
-
   const total = await Post.countDocuments({ hidden: { $ne: true } });
   return { posts, hasMore: skip + posts.length < total };
 };
 
-// Get Top posts Service
 export const getHeadlinesTopService = async (currentUserId, period = "week", page = 1, limit = 20) => {
-  const blocked = await getBlockedUsers(currentUserId);
+  let blocked = [];
+  if (currentUserId) {
+    const u = await User.findById(currentUserId).select("blockedUsers mutedUsers");
+    blocked = [...(u?.blockedUsers || []), ...(u?.mutedUsers || [])];
+  }
   const periodMap = { day: 1, week: 7, month: 30, year: 365, all: 36500 };
   const days = periodMap[period] || 7;
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
   const skip = (page - 1) * limit;
-
   const posts = await Post.find({
     hidden: { $ne: true },
     author: { $nin: blocked },
@@ -62,17 +223,18 @@ export const getHeadlinesTopService = async (currentUserId, period = "week", pag
     .sort({ voteScore: -1, "comments.length": -1 })
     .skip(skip)
     .limit(limit);
-
   const total = await Post.countDocuments({ hidden: { $ne: true }, createdAt: { $gte: since } });
   return { posts, hasMore: skip + posts.length < total };
 };
 
-// Get Rising posts Service
 export const getHeadlinesRisingService = async (currentUserId, page = 1, limit = 20) => {
-  const blocked = await getBlockedUsers(currentUserId);
-  const since = new Date(Date.now() - 6 * 60 * 60 * 1000); // last 6 hours
+  let blocked = [];
+  if (currentUserId) {
+    const u = await User.findById(currentUserId).select("blockedUsers mutedUsers");
+    blocked = [...(u?.blockedUsers || []), ...(u?.mutedUsers || [])];
+  }
+  const since = new Date(Date.now() - 6 * 60 * 60 * 1000);
   const skip = (page - 1) * limit;
-
   const posts = await Post.find({
     hidden: { $ne: true },
     author: { $nin: blocked },
@@ -94,56 +256,26 @@ export const getHeadlinesRisingService = async (currentUserId, page = 1, limit =
   };
 };
 
-// Vote on Post Service
 export const voteOnPostService = async (postId, userId, voteType) => {
-  // voteType: 'up' | 'down' | null (remove vote)
   const post = await Post.findById(postId);
   if (!post) throw new Error("Post not found");
 
-  // Remove existing votes from user
   post.upvotes = post.upvotes.filter(id => id.toString() !== userId.toString());
   post.downvotes = post.downvotes.filter(id => id.toString() !== userId.toString());
 
-  // Add new vote if applicable
   if (voteType === "up") post.upvotes.push(userId);
   if (voteType === "down") post.downvotes.push(userId);
 
   await post.save();
-
-  // Return updated post
   return await Post.findById(postId)
     .populate("author", "username name avatar isVerified accountType")
     .populate("community", "name image category");
 };
 
-// Give Award Service
 export const giveAwardService = async (postId, userId, awardType) => {
   const post = await Post.findById(postId);
   if (!post) throw new Error("Post not found");
   post.awards.push({ type: awardType, givenBy: userId });
   await post.save();
   return post;
-};
-
-// Add Comment Service
-export const addCommentService = async (postId, userId, text) => {
-  const post = await Post.findById(postId);
-  if (!post) throw new Error("Post not found");
-
-  // Create new comment object
-  const newComment = {
-    author: userId, // assuming 'author' field in comment schema
-    text,
-    createdAt: new Date(),
-  };
-
-  // Push comment and save
-  post.comments.push(newComment);
-  await post.save();
-
-  // Return updated post with populated fields
-  return await Post.findById(postId)
-    .populate("author", "username name avatar isVerified accountType")
-    .populate("community", "name image category")
-    .populate({ path: "comments.author", select: "username name avatar isVerified accountType" });
 };
