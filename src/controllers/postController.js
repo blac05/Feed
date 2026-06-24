@@ -3,13 +3,13 @@ import {
   getFollowingPostsService, getPaginatedFollowingPostsService,
   getTrendingPostsService, getPostsByHashtagService, getTrendingHashtagsService,
   getPostByIdService, deletePostService, likePostService,
-  reactToPostService, voteOnPollService, addCommentService,
+  reactToPostService, voteOnPollService, addCommentService, // <-- This will now work!
   getHeadlinesHotService, getHeadlinesNewService,
   getHeadlinesTopService, getHeadlinesRisingService,
   voteOnPostService, giveAwardService,
 } from "../services/postService.js";
 
-// ... (keep all existing exports) ...
+// ── Headlines Controller Methods ────────────────────────────
 
 export const getHeadlinesHot = async (req, res, next) => {
   try {
