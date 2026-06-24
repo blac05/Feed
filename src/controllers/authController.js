@@ -1,7 +1,8 @@
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
-import { authenticator } from "otplib"; // Fixed: Direct named import for ESM compliance
-import qrcode from "qrcode"; 
+import * as otplib from "otplib";
+import qrcode from "qrcode";
+
 import User from "../models/User.js";
 import generateToken from "../utils/generateToken.js";
 import { registerUser } from "../services/authService.js";
@@ -10,6 +11,8 @@ import {
   sendPasswordResetEmail,
   sendWelcomeEmail,
 } from "../services/emailService.js";
+
+const { authenticator } = otplib;
 
 // ── Register ──────────────────────────────────────────────
 export const register = async (req, res, next) => {
