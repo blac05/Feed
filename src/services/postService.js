@@ -69,7 +69,6 @@ export const getPaginatedFollowingPostsService = async (userId, page = 1, limit 
 };
 
 export const getTrendingPostsService = async () => {
-  // Sorts by higher engagement metrics (likes, hotScore, or voteScore)
   return await Post.find({ hidden: { $ne: true } })
     .populate("author", "username name avatar isVerified accountType")
     .populate("community", "name image category")
@@ -93,7 +92,6 @@ export const getPostsByHashtagService = async (hashtag, page = 1, limit = 20) =>
 };
 
 export const getTrendingHashtagsService = async () => {
-  // Simple aggregation fallback or custom logic to find top tags
   return [];
 };
 
@@ -132,16 +130,12 @@ export const likePostService = async (postId, userId) => {
 export const reactToPostService = async (postId, userId, reactionType) => {
   const post = await Post.findById(postId);
   if (!post) throw new Error("Post not found");
-  
-  // Custom logic based on your reaction schema structure
   return post;
 };
 
 export const voteOnPollService = async (postId, userId, optionId) => {
   const post = await Post.findById(postId);
   if (!post) throw new Error("Post not found");
-  
-  // Custom logic based on your poll schema structure
   return post;
 };
 
@@ -260,13 +254,38 @@ export const voteOnPostService = async (postId, userId, voteType) => {
   const post = await Post.findById(postId);
   if (!post) throw new Error("Post not found");
 
+  // 1. Capture original vote state before filtering arrays
+  const hadUpvoted = post.upvotes.map(id => id.toString()).includes(userId.toString());
+  const hadDownvoted = post.downvotes.map(id => id.toString()).includes(userId.toString());
+
+  // 2. Clear out any previous votes by this user
   post.upvotes = post.upvotes.filter(id => id.toString() !== userId.toString());
   post.downvotes = post.downvotes.filter(id => id.toString() !== userId.toString());
 
+  // 3. Apply the new vote type
   if (voteType === "up") post.upvotes.push(userId);
   if (voteType === "down") post.downvotes.push(userId);
 
   await post.save();
+
+  // 4. Calculate exact Net Karma Change
+  let karmaChange = 0;
+  
+  // Revert previous vote impact
+  if (hadUpvoted) karmaChange -= 1;
+  if (hadDownvoted) karmaChange += 1;
+
+  // Apply new vote impact
+  if (voteType === "up") karmaChange += 1;
+  if (voteType === "down") karmaChange -= 1;
+
+  // 5. Update author's profile karma atomically if there's a difference
+  if (karmaChange !== 0) {
+    await User.findByIdAndUpdate(post.author, { 
+      $inc: { karma: karmaChange, postKarma: karmaChange } 
+    });
+  }
+
   return await Post.findById(postId)
     .populate("author", "username name avatar isVerified accountType")
     .populate("community", "name image category");
