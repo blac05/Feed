@@ -57,8 +57,44 @@ export const initializeSocket = (server) => {
       socket.to(room).emit("user-stop-typing", { senderId });
     });
 
+    // ── Audio Space WebRTC Signaling ──────────────────────────
+    socket.on("space-join-room", ({ roomId, userId, username, avatar, role }) => {
+      socket.join(roomId);
+      socket.spaceRoom = roomId;
+      socket.userId = userId;
+      // Announce to others
+      socket.to(roomId).emit("space-peer-joined", { userId, username, avatar, role });
+    });
+
+    socket.on("space-offer", ({ roomId, offer, targetUserId }) => {
+      socket.to(roomId).emit("space-offer", { offer, fromUserId: socket.userId, targetUserId });
+    });
+
+    socket.on("space-answer", ({ roomId, answer, targetUserId }) => {
+      socket.to(roomId).emit("space-answer", { answer, fromUserId: socket.userId, targetUserId });
+    });
+
+    socket.on("space-ice-candidate", ({ roomId, candidate, targetUserId }) => {
+      socket.to(roomId).emit("space-ice-candidate", { candidate, fromUserId: socket.userId, targetUserId });
+    });
+
+    socket.on("space-mute-toggle", ({ roomId, userId, isMuted }) => {
+      io.to(roomId).emit("space-speaker-muted", { userId, isMuted });
+    });
+
+    socket.on("space-leave", ({ roomId, userId }) => {
+      socket.leave(roomId);
+      socket.spaceRoom = null;
+      socket.to(roomId).emit("space-peer-left", { userId });
+    });
+
     // ── Disconnect ──
     socket.on("disconnect", () => {
+      // Safety check: If they disconnect abruptly while in an audio space, alert the room
+      if (socket.spaceRoom && socket.userId) {
+        socket.to(socket.spaceRoom).emit("space-peer-left", { userId: socket.userId });
+      }
+
       if (socket.userId) {
         onlineUsers.delete(socket.userId);
         socket.broadcast.emit("user_offline", {
@@ -78,3 +114,4 @@ export const initializeSocket = (server) => {
 export const getIO = () => io;
 export const getOnlineUsers = () => onlineUsers;
 export const isUserOnline = (userId) => onlineUsers.has(userId.toString());
+
