@@ -17,6 +17,9 @@ import productRoutes from "./routes/productRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import subscriptionRoutes from "./routes/subscriptionRoutes.js";
+import audioSpaceRoutes from "./routes/audioSpaceRoutes.js";
+import referralRoutes from "./routes/referralRoutes.js";
 
 // Newly Integrated Feature Routes
 import messageRoutes from "./routes/messageRoutes.js";
@@ -88,6 +91,11 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/push", pushRoutes);
 app.use("/api/reports", reportRoutes);
+
+// Add after existing routes:
+app.use("/api/subscriptions", subscriptionRoutes);
+app.use("/api/spaces", audioSpaceRoutes);
+app.use("/api/referral", referralRoutes);
 
 // ==========================================
 // FALLBACK EXCEPTION INTERCEPTORS (ORDER CRITICAL)
